@@ -1,6 +1,6 @@
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm
@@ -65,7 +65,7 @@ class LoginForm(FlaskForm):
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    return render_template('home.html')
+    return render_template('index.html')
 
 
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
@@ -107,6 +107,13 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         return redirect(url_for('login'))  # redirect to login page after register
+
+    # if account creation is successful, go to login page, else flash message to user
+    if request.method == 'POST':
+        if form.validate():
+            return redirect(url_for('login'))
+        else:
+            flash('Username has been taken. Please choose another username')
     return render_template('register.html', form=form)
 
 

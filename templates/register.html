@@ -18,6 +18,16 @@
     {{form.submit}}
 </form>
 
+
 <a href= "{{url_for('login')}}">Already have an account? Log in</a><br>
+
+{% with messages = get_flashed_messages() %}
+   {% if messages %}
+      {% for message in messages %}
+         {{ message }}
+      {% endfor %}
+   {% endif %}
+{% endwith %}
+
 </body>
 </html>
