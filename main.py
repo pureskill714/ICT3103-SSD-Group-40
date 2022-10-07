@@ -18,6 +18,7 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager()  # Allow our app and flask login to work together
 login_manager.init_app(app)
 login_manager.login_view = "login"
+login_manager.login_message = u"Username or Password incorrect. Please try again"
 
 
 # This user loaded callback is used to reload the user object from the user id stored in the session
@@ -81,6 +82,10 @@ def login():
             if bcrypt.check_password_hash(user.password, form.password.data):
                 login_user(user)
                 return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        if form.validate():
+            return redirect(url_for('dashboard'))
     return render_template('login.html', form=form)
 
 
@@ -95,6 +100,12 @@ def dashboard():
 def logout():
     logout_user()  # log the user out
     return redirect(url_for('login'))  # redirect user back to login page
+
+
+@app.route("/forgetPassword", methods=['GET', 'POST'])
+def forgetPassword():
+    logout_user()  # log the user out
+    return render_template('forgetpassword.html')
 
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -113,7 +124,7 @@ def register():
         if form.validate():
             return redirect(url_for('login'))
         else:
-            flash('Username has been taken. Please choose another username')
+            flash('This username already exists. Please choose a different one.')
     return render_template('register.html', form=form)
 
 
