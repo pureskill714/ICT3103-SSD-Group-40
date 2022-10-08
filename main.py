@@ -4,14 +4,14 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import InputRequired, Length, ValidationError
+from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators
+from wtforms.validators import InputRequired, Length, ValidationError, Email
 from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
 # against attacks such as Cross site request forgery (CSRF)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # stored in folder called tmp
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
@@ -24,33 +24,73 @@ login_manager.login_message = u"Username or Password incorrect. Please try again
 # This user loaded callback is used to reload the user object from the user id stored in the session
 @login_manager.user_loader
 def load_user(user_id):
-    return Users.query.get(user_id)
+    return Customers.query.get(user_id)
 
 
 # a class as a model. The model will represent the data that will be stored in the database
 # this class needs to inherit from db.Model
-class Users(db.Model, UserMixin):  # UserMixin is for validating users
+class Customers(db.Model, UserMixin):  # UserMixin is for validating users
     id = db.Column(db.Integer, primary_key=True)  # This will be primary key
+    firstname = db.Column(db.String(30), nullable=False)
+    lastname = db.Column(db.String(30), nullable=False)
+    email = db.Column(db.String(30), nullable=False, unique=True)
     username = db.Column(db.String(30), nullable=False, unique=True)  # username field is unique
     password = db.Column(db.String(80), nullable=False)  # password field
+    contact = db.Column(db.Integer(), nullable=False)
+
+
+class Staff(db.Model, UserMixin):  # UserMixin is for validating users
+    id = db.Column(db.Integer, primary_key=True)  # This will be primary key
+    firstname = db.Column(db.String(30), nullable=False)
+    lastname = db.Column(db.String(30), nullable=False)
+    email = db.Column(db.String(30), nullable=False, unique=True)
+    address = db.Column(db.String(200), nullable=False,)
+    username = db.Column(db.String(30), nullable=False, unique=True)  # username field is unique
+    password = db.Column(db.String(80), nullable=False)  # password field
+    contact = db.Column(db.Integer(), nullable=False)
 
 
 class RegisterForm(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=4, max=20)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=4, max=20)])
+
+    # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=40), Email()])
+
     # For users to choose a username
     username = StringField(validators=[InputRequired(),
-                                       Length(min=4, max=20)], render_kw={"placeholder": "Username"})
+                                       Length(min=4, max=20)])
     # For users to choose a password
-    password = PasswordField(validators=[InputRequired(),
-                                         Length(min=4, max=20)], render_kw={"placeholder": "Password"})
+    password = PasswordField(label='Password', validators=[InputRequired(),
+                                                           validators.Length(min=6, max=10),
+                                                           validators.EqualTo('password_confirm',
+                                                                              message='Passwords must match,Please try again')])
+
+    # For users to confirm password
+    password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
+                                                                           validators.Length(min=6, max=10)])
+
+    # For users to enter their contact number
+    contact = IntegerField(validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
 
     # This method checks if there already has an existing username in the database
     def validate_username(self, username):
         # This variable query the database table by the username and check if got same username or not
-        existing_user_username = Users.query.filter_by(username=username.data).first()
+        existing_user_username = Customers.query.filter_by(username=username.data).first()
         if existing_user_username:
             raise ValidationError("This username already exists. Please choose a different one.")
+
+    def validate_email(self, email):
+        existing_email = Customers.query.filter_by(email=email.data).first()
+        if existing_email:
+            raise ValidationError("This email already exists in the system. Please register with another")
 
 
 class LoginForm(FlaskForm):
@@ -75,7 +115,7 @@ def login():
 
     # check if the user exists in the database
     if form.validate_on_submit():
-        user = Users.query.filter_by(username=form.username.data).first()
+        user = Customers.query.filter_by(username=form.username.data).first()
         # If they are in the database,check for their password hashed,compare with real password. If it matches,
         # then redirect them to dashboard page
         if user:
@@ -114,8 +154,10 @@ def register():
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
-        new_user = Users(username=form.username.data, password=hashed_password)
-        db.session.add(new_user)
+        new_customer = Customers(firstname=form.firstname.data, lastname=form.lastname.data,
+                                 email=form.email.data, username=form.username.data,
+                                 password=hashed_password, contact=form.contact.data)
+        db.session.add(new_customer)
         db.session.commit()
         return redirect(url_for('login'))  # redirect to login page after register
 
@@ -124,7 +166,15 @@ def register():
         if form.validate():
             return redirect(url_for('login'))
         else:
-            flash('This username already exists. Please choose a different one.')
+            # Check if username already exists in database and return error message
+            existing_user_username = Customers.query.filter_by(username=form.username.data).first()
+            if existing_user_username:
+                flash("This username already exists. Please choose a different one.")
+
+            existing_email = Customers.query.filter_by(email=form.email.data).first()
+            if existing_email:
+                flash("This email already exists in the system. Please register with another.")
+
     return render_template('register.html', form=form)
 
 
