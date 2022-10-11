@@ -1,6 +1,6 @@
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, abort
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm
@@ -234,6 +234,45 @@ def stafftable():
 def registersuccess():
     return render_template('registersucess.html')
 
+# 400 - To handle Bad request
+@app.route('/400')
+def error400():
+    abort(400)
+
+# 401 - To handle error of Unauthorized request
+@app.route('/401')
+def error401():
+    abort(401)
+
+# 404 - To handle error in matching the Request URL
+@app.route('/404')
+def error404():
+    abort(404)
+
+# 500 - To handle error in Internal Server Error
+@app.route('/500')
+def error500():
+    abort(500)
+
+# To direct to 400 page
+@app.errorhandler(400)
+def unauthorized_page(error):
+    return render_template('400.html'), 400
+    
+# To direct to 401 page
+@app.errorhandler(401)
+def unauthorized_page(error):
+    return render_template('401.html'), 401
+    
+# To direct to 404 page
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('404.html'), 404
+
+# To direct to 500 page
+@app.errorhandler(500)
+def internal_error(error):
+    return render_template('500.html'), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
