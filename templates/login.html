@@ -132,7 +132,7 @@ body{
                 <ul>
                     <li><a href="{{url_for('home')}}">Home</a></li>
                     <li><a href="{{url_for('register')}}">Register</a></li>
-                    <li><a href="{{url_for('customerlogin')}}">Login</a></li>
+                    <li><a href="{{url_for('login')}}">Login</a></li>
                     <li><a href="{{url_for('home')}}">Contact Us</a></li>
                 </ul>
               </div>
@@ -142,7 +142,7 @@ body{
         <form method="POST" action="">
             {{form.hidden_tag() }} <!-- generates a hidden field used to protect against CSRF attacks-->
             <div class="box">
-                <h1>Guest Login</h1>
+                <h1>User Login</h1>
                 {{form.username }}
                 {{form.password }}
                 <button class="button">Log In</button>

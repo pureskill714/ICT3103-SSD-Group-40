@@ -18,7 +18,7 @@ bcrypt = Bcrypt(app)
 # Handling the login validation for Customers
 login_manager = LoginManager()  # Allow our app and flask login to work together
 login_manager.init_app(app)
-login_manager.login_view = "customerlogin"
+login_manager.login_view = "login"
 login_manager.login_message = u"Username or Password incorrect. Please try again"
 
 
@@ -63,6 +63,10 @@ class RegisterForm(FlaskForm):
                                                            validators.EqualTo('password_confirm',
                                                                               message='Passwords must match,Please try again')])
 
+    # For users to choose the employee number
+    emp_no = StringField(validators=[InputRequired(),
+                                       Length(min=4, max=20)])
+
     # For users to confirm password
     password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
                                                                            validators.Length(min=6, max=10)])
@@ -101,59 +105,35 @@ def home():
     return render_template('index.html')
 
 
-@app.route("/customerlogin", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
-def customerlogin():
+@app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
+def login():
     form = LoginForm()
     # check if the user exists in the database
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data, role="Customer").first()
+        user = User.query.filter_by(username=form.username.data).first()
         # If they are in the database,check for their password hashed,compare with real password. If it matches,
         # then redirect them to dashboard page
         if user:
-            if bcrypt.check_password_hash(user.password, form.password.data):
+            if user.role == "Customer":
+                if bcrypt.check_password_hash(user.password, form.password.data):
+                    login_user(user)
+                    return redirect(url_for('customerdashboard'))
+
+            if user.role == "Staff":
+                # if bcrypt.check_password_hash(user.password, form.password.data):
                 login_user(user)
-                return redirect(url_for('customerdashboard'))
+                return redirect(url_for('staffdashboard'))
+
+            if user.role == "Manager":
+                # if bcrypt.check_password_hash(user.password, form.password.data):
+                login_user(user)
+                return redirect(url_for('managerdashboard'))
+
+
         else:
             flash("Username or Password incorrect. Please try again")
 
-    return render_template('logins/customerlogin.html', form=form)
-
-
-@app.route("/stafflogin", methods=['GET', 'POST'])
-def stafflogin():
-    form = LoginForm()
-
-    # check if the user exists in the database
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data, role="Staff").first()
-        # If they are in the database,check for their password hashed,compare with real password. If it matches,
-        # then redirect them to dashboard page
-        if user:
-            # if bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user)
-            return redirect(url_for('staffdashboard'))
-        else:
-            flash("Username or Password incorrect. Please try again")
-
-    return render_template('logins/stafflogin.html', form=form)
-
-
-@app.route("/managerlogin", methods=['GET', 'POST'])
-def managerlogin():
-    form = LoginForm()
-    # check if the user exists in the database
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data, role="Manager").first()
-        # If they are in the database,check for their password hashed,compare with real password. If it matches,
-        # then redirect them to dashboard page
-        if user:
-            # if bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user)
-            return redirect(url_for('managerdashboard'))
-        else:
-            flash("Username or Password incorrect. Please try again")
-
-    return render_template('logins/managerlogin.html', form=form)
+    return render_template('login.html', form=form)
 
 
 @app.route("/customerdashboard", methods=['GET', 'POST'])
@@ -178,7 +158,7 @@ def managerdashboard():
 @login_required  # ensure is logged then, only then can log out
 def logout():
     logout_user()  # log the user out
-    return redirect(url_for('customerlogin'))  # redirect user back to login page
+    return redirect(url_for('login'))  # redirect user back to login page
 
 
 @app.route("/forgetPassword", methods=['GET', 'POST'])
@@ -217,22 +197,60 @@ def register():
 
     return render_template('register.html', form=form)
 
+@app.route("/staffregister", methods=['GET', 'POST'])
+def staffregister():
+    form = RegisterForm()
+    # Whenever we submit this form, we immediately create a hash version of the password and submit to database
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data)
+        new_customer = User(firstname=form.firstname.data, lastname=form.lastname.data,
+                            email=form.email.data, username=form.username.data,
+                            password=hashed_password, contact=form.contact.data,
+                            emp_no=form.emp_no.data,role="Staff")
+        db.session.add(new_customer)
+        db.session.commit()
+        return redirect(url_for('staffregistersucess'))  # redirect to login page after register
+
+    # if account creation is successful, go to login page, else flash message to user
+    if request.method == 'POST':
+        if form.validate():
+            return redirect(url_for('staffregistersucess'))
+        else:
+            # Check if username already exists in database and return error message
+            existing_user_username = User.query.filter_by(username=form.username.data).first()
+            if existing_user_username:
+                flash("This username already exists. Please choose a different one.")
+
+            existing_email = User.query.filter_by(email=form.email.data).first()
+            if existing_email:
+                flash("This email already exists in the system. Please register with another.")
+
+    return render_template('staffregister.html', form=form)
+
 
 @app.route('/customertable')
+@login_required  # ensure is logged then, only then can log out
 def customertable():
     users = User.query.filter_by(role="Customer")
     return render_template('tables/customertable.html', users=users)
 
 
 @app.route('/stafftable')
+@login_required  # ensure is logged then, only then can log out
 def stafftable():
     users = User.query.filter_by(role="Staff")
     return render_template('tables/stafftable.html', users=users)
 
 
 @app.route('/registersuccess')
+@login_required  # ensure is logged then, only then can log out
 def registersuccess():
     return render_template('registersucess.html')
+
+@app.route('/staffregistersucess')
+@login_required  # ensure is logged then, only then can log out
+def staffregistersucess():
+    return render_template('staffregistersucess.html')
 
 
 if __name__ == '__main__':

@@ -54,22 +54,9 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
   </head>
   <body>
-  <header>
-        <nav id="navbar">
-        <div class="container">
-                <h1 class="logo"><a href="">The Cozy Inn Hotel</a></h1>
-                <ul>
-                    <li><a href="{{url_for('home')}}">Home</a></li>
-                    <li><a href="{{url_for('register')}}">Register</a></li>
-                    <li><a href="{{url_for('login')}}">Login</a></li>
-                    <li><a href="{{url_for('home')}}">Contact Us</a></li>
-                </ul>
-              </div>
-            </nav>
-    </header>
 
 <center>
-<h2>Congratulation! You have successfully created an account!
-    You may now login and start booking rooms. Enjoy your stay at the Cozy Inn!</h2>
-    <a href="{{url_for('login')}}">Click here to Login</a>
+<h2>Congratulation! You have successfully created a staff account!
+    The new staff can now login into his/her account</h2>
+    <a href="{{url_for('managerdashboard')}}">Click here to return to the dashboard page</a>
     </center>

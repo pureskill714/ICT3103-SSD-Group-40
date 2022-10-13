@@ -53,16 +53,17 @@
     <!-- Latest compiled JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
   </head>
-  <body>
+  <body style="background-color:powderblue;">
   <header>
         <nav id="navbar">
         <div class="container">
-                <h1 class="logo"><a href="">The Cozy Inn Hotel</a></h1>
+                <h1 class="logo">Manager Page</a></h1>
                 <ul>
-                    <li><a href="{{url_for('home')}}">Home</a></li>
-                    <li><a href="{{url_for('register')}}">Register</a></li>
-                    <li><a href="{{url_for('login')}}">Login</a></li>
-                    <li><a href="{{url_for('home')}}">Contact Us</a></li>
+                    <li><a href="{{url_for('managerdashboard')}}">Main Dashboard</a></li>
+                    <li><a href="{{url_for('staffregister')}}">Create Staff Account</a></li>
+                    <li><a href="{{url_for('login')}}">Update Staff</a></li>
+                    <li><a href="{{url_for('login')}}">Delete Staff</a></li>
+                    <li><a href="{{url_for('stafftable')}}">View Staffs</a></li>
                 </ul>
               </div>
             </nav>
@@ -71,13 +72,8 @@
       class="text-green text-center font-weight-bold"
       style="font-size: 40px;"
     >
-      Create your Cozy Inn guest account
+      Register a new staff account
     </h1>
-
-    <h4 class="text-blue text-center font-weight-bold" style="font-size: 20px;">
-      Create an account to start booking your next vacation!
-    </h4>
-
   <center>
   {% with messages = get_flashed_messages() %}
            {% if messages %}
@@ -87,7 +83,6 @@
            {% endif %}
         {% endwith %}
   </center>
-
   <center>
   {% if form.password.errors %}
                 {% for error in form.password.errors %}
@@ -151,6 +146,14 @@
             {{form.contact}}
             <span id="mobileno" class="text-danger font-weight-regular"> </span>
           </div>
+
+          <!-- Inputting emp_no -->
+          <div class="form-group">
+            <label class="font-weight-regular"> Employee Number </label><br>
+            {{form.emp_no}}
+            <span id="empno" class="text-danger font-weight-regular"> </span>
+          </div>
+
           <!-- Submit button -->
          {{form.submit}}
           <input
@@ -160,8 +163,6 @@
             class="btn btn-secondary"
             autocomplete="off"
           />
-          &emsp;&emsp;&emsp;Already have an account?
-          <a href="{{url_for('login')}}">Login</a>
         </form>
 
         <br /><br />
