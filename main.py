@@ -65,7 +65,7 @@ class RegisterForm(FlaskForm):
 
     # For users to choose the employee number
     emp_no = StringField(validators=[InputRequired(),
-                                       Length(min=4, max=20)])
+                                     Length(min=4, max=20)])
 
     # For users to confirm password
     password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
@@ -197,17 +197,18 @@ def register():
 
     return render_template('register.html', form=form)
 
+
 @app.route("/staffregister", methods=['GET', 'POST'])
 def staffregister():
     form = RegisterForm()
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
-        new_customer = User(firstname=form.firstname.data, lastname=form.lastname.data,
-                            email=form.email.data, username=form.username.data,
-                            password=hashed_password, contact=form.contact.data,
-                            emp_no=form.emp_no.data,role="Staff")
-        db.session.add(new_customer)
+        new_staff = User(firstname=form.firstname.data, lastname=form.lastname.data,
+                         email=form.email.data, username=form.username.data,
+                         password=hashed_password, contact=form.contact.data,
+                         emp_no=form.emp_no.data, role="Staff")
+        db.session.add(new_staff)
         db.session.commit()
         return redirect(url_for('staffregistersucess'))  # redirect to login page after register
 
@@ -242,10 +243,59 @@ def stafftable():
     return render_template('tables/stafftable.html', users=users)
 
 
+@app.route('/staffupdatesearch', methods=['GET', 'POST'])
+@login_required
+def staffUpdateSearch():
+    return render_template('staffCRUD/staff_update_search.html')
+
+
+@app.route('/staffupdatevalue', methods=['GET', 'POST'])
+def staffUpdateValue():
+    id = request.form['emp_no']
+    employee = User.query.filter_by(emp_no=id).first()
+    if employee:
+        return render_template('staffCRUD/staff_update_value.html', employee=employee)
+    else:
+        return f"Employee with id = {id} Does not exist"
+
+
+@app.route('/staffupdatesubmit/<int:id>', methods=['GET', 'POST'])
+def staffUpdateSubmit(id):
+    employee = User.query.filter_by(emp_no=id).first()
+    if request.method == 'POST':
+        employee.firstname = request.form['firstname']
+        employee.lastname = request.form['lastname']
+        employee.email = request.form['email']
+        employee.contact = request.form['contact']
+        db.session.commit()
+    return render_template('staffCRUD/staff_update_sucess.html')
+
+
+@app.route('/staffdeletesearch', methods=['GET', 'POST'])
+@login_required
+def staffDeleteSearch():
+    return render_template('staffCRUD/staff_delete_search.html')
+
+
+@app.route('/staffdeletesubmit', methods=['GET', 'POST'])
+def staffDeleteSubmit():
+    id = request.form['emp_no_delete']
+    employee = User.query.filter_by(emp_no=id).first()
+    if request.method == 'POST':
+        if employee:
+            db.session.delete(employee)
+            db.session.commit()
+            return render_template('staffCRUD/staff_update_sucess.html')
+        else:
+            return f"Employee with id = {id} Does not exist"
+
+
+
 @app.route('/registersuccess')
 @login_required  # ensure is logged then, only then can log out
 def registersuccess():
     return render_template('registersucess.html')
+
 
 @app.route('/staffregistersucess')
 @login_required  # ensure is logged then, only then can log out

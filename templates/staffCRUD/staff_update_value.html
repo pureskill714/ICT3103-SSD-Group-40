@@ -1,0 +1,9 @@
+<h1>Update Staff Details</h1>
+<form action="{{url_for('staffUpdateSubmit',id=employee.emp_no)}}" method = "POST">
+  <p>firstname <input name="firstname" type = "text" firstname = "firstname" value="{{employee.firstname}}"/></p>
+  <p>lastname <input name="lastname" type = "text" lastame = "lastname"  value="{{employee.lastname}}"/></p>
+  <p>email <input name="email" email="email" type = "text" email = "email" value="{{employee.email}}"/></p>
+  <p>contact <input name="contact" type = "integer" contact = "contact" value="{{employee.contact}}"/></p>
+  <p>Updating details for employee no. {{employee.emp_no}}</p>
+  <p><input type = "submit" value = "Submit" /></p>
+</form>
