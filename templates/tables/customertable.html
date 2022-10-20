@@ -16,6 +16,7 @@
   </head>
 
 <body>
+{% if session['logged_in'] and (session['role'] == "Staff" or session['role'] == "Manager")  %}
 <center>
 <h1>Customer Table</h1>
 </center>
@@ -40,7 +41,11 @@
         <td>{{ user.role }}</td>
     </tr>
        {% endfor %}
-
 </table>
+{% else %}
+<h1>You are not authorized to view this page</h1>
+<br>
+<a href= "{{url_for('customerdashboard')}}">Click here to return to the dashboard page</a><br>
+{% endif %}
 </body>
 </html>

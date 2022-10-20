@@ -1,6 +1,6 @@
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash,session
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm
@@ -19,7 +19,7 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager()  # Allow our app and flask login to work together
 login_manager.init_app(app)
 login_manager.login_view = "login"
-login_manager.login_message = u"Username or Password incorrect. Please try again"
+login_manager.login_message = u"Username or Password incorrect. Please try againhahaha"
 
 
 # This user loaded callback is used to reload the user object from the user id stored in the session
@@ -42,7 +42,7 @@ class User(db.Model, UserMixin):  # UserMixin is for validating users
     emp_no = db.Column(db.Integer(), nullable=True)
 
 
-class RegisterForm(FlaskForm):
+class RegisterFormCustomer(FlaskForm):
     # For users to choose a first name
     firstname = StringField(validators=[InputRequired(),
                                         Length(min=4, max=20)])
@@ -51,7 +51,37 @@ class RegisterForm(FlaskForm):
                                        Length(min=4, max=20)])
 
     # For users to input their email
-    email = EmailField(validators=[InputRequired("Please enter email address"),
+    email = EmailField(validators=[InputRequired("Please enter a valid email address"),
+                                   Length(min=4, max=40), Email()])
+
+    # For users to choose a username
+    username = StringField(validators=[InputRequired(),
+                                       Length(min=4, max=20)])
+    # For users to choose a password
+    password = PasswordField(label='Password', validators=[InputRequired(),
+                                                           validators.Length(min=6, max=10),
+                                                           validators.EqualTo('password_confirm',
+                                                                              message='Passwords must match,Please try again')])
+    # For users to confirm password
+    password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
+                                                                           validators.Length(min=6, max=10)])
+
+    # For users to enter their contact number
+    contact = IntegerField(validators=[InputRequired()])
+
+    submit = SubmitField("Register")  # Register button once they are done
+
+
+class RegisterFormStaff(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=4, max=20)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=4, max=20)])
+
+    # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter a valid email address"),
                                    Length(min=4, max=40), Email()])
 
     # For users to choose a username
@@ -64,8 +94,7 @@ class RegisterForm(FlaskForm):
                                                                               message='Passwords must match,Please try again')])
 
     # For users to choose the employee number
-    emp_no = StringField(validators=[InputRequired(),
-                                     Length(min=4, max=20)])
+    emp_no = StringField(validators=[Length(min=4, max=20)])
 
     # For users to confirm password
     password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
@@ -108,6 +137,7 @@ def home():
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 def login():
     form = LoginForm()
+
     # check if the user exists in the database
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
@@ -117,21 +147,25 @@ def login():
             if user.role == "Customer":
                 if bcrypt.check_password_hash(user.password, form.password.data):
                     login_user(user)
+                    session["logged_in"] = True
+                    session["role"] = "Customer"
                     return redirect(url_for('customerdashboard'))
 
             if user.role == "Staff":
                 # if bcrypt.check_password_hash(user.password, form.password.data):
                 login_user(user)
+                session["logged_in"] = True
+                session["role"] = "Staff"
                 return redirect(url_for('staffdashboard'))
 
             if user.role == "Manager":
                 # if bcrypt.check_password_hash(user.password, form.password.data):
                 login_user(user)
+                session["logged_in"] = True
+                session["role"] = "Manager"
                 return redirect(url_for('managerdashboard'))
-
-
-        else:
-            flash("Username or Password incorrect. Please try again")
+            else:
+                flash("Username or Password incorrect. Please try again")
 
     return render_template('login.html', form=form)
 
@@ -169,7 +203,7 @@ def forgetPassword():
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
-    form = RegisterForm()
+    form = RegisterFormCustomer()
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
@@ -199,8 +233,9 @@ def register():
 
 
 @app.route("/staffregister", methods=['GET', 'POST'])
+@login_required
 def staffregister():
-    form = RegisterForm()
+    form = RegisterFormStaff()
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
@@ -232,6 +267,7 @@ def staffregister():
 @app.route('/customertable')
 @login_required  # ensure is logged then, only then can log out
 def customertable():
+
     users = User.query.filter_by(role="Customer")
     return render_template('tables/customertable.html', users=users)
 
@@ -250,6 +286,7 @@ def staffUpdateSearch():
 
 
 @app.route('/staffupdatevalue', methods=['GET', 'POST'])
+@login_required
 def staffUpdateValue():
     id = request.form['emp_no']
     employee = User.query.filter_by(emp_no=id).first()
@@ -260,6 +297,7 @@ def staffUpdateValue():
 
 
 @app.route('/staffupdatesubmit/<int:id>', methods=['GET', 'POST'])
+@login_required
 def staffUpdateSubmit(id):
     employee = User.query.filter_by(emp_no=id).first()
     if request.method == 'POST':
@@ -278,6 +316,7 @@ def staffDeleteSearch():
 
 
 @app.route('/staffdeletesubmit', methods=['GET', 'POST'])
+@login_required
 def staffDeleteSubmit():
     id = request.form['emp_no_delete']
     employee = User.query.filter_by(emp_no=id).first()
@@ -285,14 +324,12 @@ def staffDeleteSubmit():
         if employee:
             db.session.delete(employee)
             db.session.commit()
-            return render_template('staffCRUD/staff_update_sucess.html')
+            return render_template('staffCRUD/staff_delete_sucess.html')
         else:
             return f"Employee with id = {id} Does not exist"
 
 
-
 @app.route('/registersuccess')
-@login_required  # ensure is logged then, only then can log out
 def registersuccess():
     return render_template('registersucess.html')
 
