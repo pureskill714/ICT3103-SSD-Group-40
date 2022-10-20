@@ -1,0 +1,38 @@
+services:
+  db:
+    build: db
+    restart: always
+    networks:
+      - backnet
+    expose:
+      - 1433
+
+  flask:
+    build: flask
+    restart: always
+    secrets:
+      - db-password
+    expose:
+      - 5000:5000
+    networks:
+      - backnet
+      - frontnet
+    depends_on:
+      db:
+        condition: service_healthy
+
+  proxy:
+    build: proxy
+    restart: always
+    ports:
+      - 80:80
+    depends_on:
+      - flask
+    networks:
+      - frontnet
+
+networks:
+  backnet:
+    external: true
+  frontnet:
+    external: true
