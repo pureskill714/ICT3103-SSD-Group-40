@@ -87,7 +87,7 @@ def login():
         
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("127.0.0.1", 'sa', '12345678', "3203")
+        conn = pymssql.connect(server="localhost", user='sa', password='PAssw0rd123q', database="3203")
         cursor = conn.cursor()
 
 
@@ -150,7 +150,7 @@ def register():
 
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
+        conn = pymssql.connect(server="localhost", user='sa', password='PAssw0rd123q', database="3203")
 
         cursor = conn.cursor()
         

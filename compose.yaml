@@ -13,13 +13,14 @@ services:
     secrets:
       - db-password
     expose:
-      - 5000:5000
+      - 5000
     networks:
       - backnet
       - frontnet
     depends_on:
       db:
         condition: service_healthy
+
 
   proxy:
     build: proxy
