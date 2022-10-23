@@ -7,6 +7,7 @@ from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from forms import *
 import pymssql
+import re
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
@@ -106,6 +107,15 @@ def forgetPassword():
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
+
+    if form.validate():
+        pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+        if re.search(pattern, form.password.data):
+            pass
+        else:
+            flash("password is not strong enough. Please try again!")
+            return render_template('register.html', form=form)
+
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
@@ -152,7 +162,6 @@ def stafftable():
 
 
 @app.route('/registersuccess')
-@login_required  # ensure is logged then, only then can log out
 def registersuccess():
     return render_template('registersucess.html')
 

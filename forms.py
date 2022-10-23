@@ -1,9 +1,11 @@
 from flask_wtf import FlaskForm, RecaptchaField
-from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField,DateField
+from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, \
+    DateField
 from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired
 import datetime
 from datetime import date
-from flask import flash
+import re
+
 
 class RegisterForm(FlaskForm):
     # For users to choose a first name
@@ -47,7 +49,8 @@ class LoginForm(FlaskForm):
 
 
 class BookingForm(FlaskForm):
-    room_type = SelectField(u'Room Type', choices=[('sdtwin', 'Standard Twin'), ('sdqueen', 'Standard Queen'), ('deluxe', 'Deluxe')])
+    room_type = SelectField(u'Room Type',
+                            choices=[('sdtwin', 'Standard Twin'), ('sdqueen', 'Standard Queen'), ('deluxe', 'Deluxe')])
     today = date.today()
     start_date = DateField('Start Date', format='%Y-%m-%d', default=today, validators=(validators.DataRequired(),))
     end_date = DateField('End date', validators=[DataRequired()])
