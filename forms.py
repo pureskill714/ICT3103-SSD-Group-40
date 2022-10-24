@@ -50,7 +50,7 @@ class LoginForm(FlaskForm):
 
 class BookingForm(FlaskForm):
     room_type = SelectField(u'Room Type',
-                            choices=[('sdtwin', 'Standard Twin'), ('sdqueen', 'Standard Queen'), ('deluxe', 'Deluxe')])
+                            choices=[('Standard Twin', 'Standard Twin'), ('Standard Queen', 'Standard Queen'), ('Deluxe', 'Deluxe')])
     today = date.today()
     start_date = DateField('Start Date', format='%Y-%m-%d', default=today, validators=(validators.DataRequired(),))
     end_date = DateField('End date', validators=[DataRequired()])

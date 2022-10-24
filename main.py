@@ -1,6 +1,6 @@
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_bcrypt import Bcrypt
@@ -19,7 +19,6 @@ app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
 bcrypt = Bcrypt(app)
 
 csrf = CSRFProtect(app)  # globally enable csrf protection within the application
-
 
 jinja_options = ImmutableDict(
     extensions=[
@@ -59,6 +58,14 @@ def login():
         conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
         cursor = conn.cursor()
 
+        # get the User_ID of the user who logged in
+        cursor.execute('SELECT User_ID from Users where Username = %s', form.username.data)
+        for row in cursor:
+            data = row
+
+        # store the userid in a session
+        for userid in data:
+            session['userid'] = userid
         # Fetches original password hash of the user
         # Might replace this execute command with a function for higher security
         cursor.execute('SELECT Password FROM Users WHERE Username = %s', form.username.data)
@@ -84,19 +91,19 @@ def login():
 
 
 @app.route("/customerdashboard", methods=['GET', 'POST'])
-#@login_required  # ensure is logged then, only then can access the dashboard
+# @login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
     return render_template('dashboards/customerdashboard.html')
 
 
 @app.route("/staffdashboard", methods=['GET', 'POST'])
-#@login_required  # ensure is logged then, only then can access the dashboard
+# @login_required  # ensure is logged then, only then can access the dashboard
 def staffdashboard():
     return render_template('dashboards/staffdashboard.html')
 
 
 @app.route("/managerdashboard", methods=['GET', 'POST'])
-#@login_required  # ensure is logged then, only then can access the dashboard
+# @login_required  # ensure is logged then, only then can access the dashboard
 def managerdashboard():
     return render_template('dashboards/managerdashboard.html')
 
@@ -235,8 +242,27 @@ def handle_csrf_error(error):
 def booking():
     form = BookingForm()
     if form.validate_on_submit():
+        print(session["userid"])
         flash('Booking success!')
+        # Creating connections individually to avoid open connections
+        # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
+
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Bookings2 (user_id,room_type, start_date, end_date)"
+            "VALUES (%d,%s, %s, %s)"
+        )
+        data = (session["userid"], form.room_type.data, form.start_date.data, form.end_date.data)
+
+        # Send the data to database
+        cursor.execute(insert_stmt, data)
+
+        conn.commit()
+        conn.close()
+
         return redirect(url_for('booking'))
+
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
 
