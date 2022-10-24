@@ -10,8 +10,6 @@ services:
   flask:
     build: flask
     restart: always
-    secrets:
-      - db-password
     expose:
       - 5000
     networks:
