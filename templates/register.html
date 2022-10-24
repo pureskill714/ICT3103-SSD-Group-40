@@ -102,7 +102,7 @@
 		<!-- Inputting first name -->
       <div class="col-lg-5 m-auto d-block">
         <form method="POST" action="">
-            {{form.hidden_tag() }}
+          {{ form.csrf_token }} <!-- generates a random hidden field used to protect against CSRF attacks-->
           <div class="form-group">
             <label for="name" class="font-weight-regular"> First Name </label><br>
             {{form.firstname}}

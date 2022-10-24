@@ -57,7 +57,7 @@ body{
         }
         .box{
           background:white;
-          width:300px;
+          width:310px;
           border-radius:6px;
           margin: 0 auto 0 auto;
           padding:0px 0px 70px 0px;
@@ -140,12 +140,13 @@ body{
     </header>
    <div id="absoluteCenteredDiv">
         <form method="POST" action="">
-            {{form.hidden_tag() }} <!-- generates a hidden field used to protect against CSRF attacks-->
+          {{ form.csrf_token }} <!-- generates a random hidden field used to protect against CSRF attacks-->
             <div class="box">
                 <h1>User Login</h1>
                 {{form.username }}
                 {{form.password }}
-                <button class="button">Log In</button>
+                <button class="button" >Log In</button>
+                {{form.recaptcha}}
             </div>
         </form>
         <h6>Forgot your password? <a class="fpwd" href="{{url_for('forgetPassword')}}">Click Here!</a></h6>
@@ -158,6 +159,12 @@ body{
               {% endfor %}
            {% endif %}
         {% endwith %}
+      <!-- Prompting error message to user  -->
+      {% for error in form.recaptcha.errors %}
+      <ui>
+        <li style="color:red;">{{error}}</li>
+      </ui>
+        {% endfor %}
     </div>
 
 
