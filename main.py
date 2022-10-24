@@ -1,10 +1,12 @@
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
+from werkzeug.datastructures import ImmutableDict
+
 from forms import *
 import pymssql
 import re
@@ -17,6 +19,14 @@ app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
 bcrypt = Bcrypt(app)
 
 csrf = CSRFProtect(app)  # globally enable csrf protection within the application
+
+
+jinja_options = ImmutableDict(
+    extensions=[
+        'jinja2.ext.autoescape', 'jinja2.ext.with_'
+    ])
+# Turn auto escaping on
+app.jinja_env.autoescape = True
 
 # Handling the login validation for Customers
 login_manager = LoginManager()  # Allow our app and flask login to work together
@@ -74,19 +84,19 @@ def login():
 
 
 @app.route("/customerdashboard", methods=['GET', 'POST'])
-@login_required  # ensure is logged then, only then can access the dashboard
+#@login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
     return render_template('dashboards/customerdashboard.html')
 
 
 @app.route("/staffdashboard", methods=['GET', 'POST'])
-@login_required  # ensure is logged then, only then can access the dashboard
+#@login_required  # ensure is logged then, only then can access the dashboard
 def staffdashboard():
     return render_template('dashboards/staffdashboard.html')
 
 
 @app.route("/managerdashboard", methods=['GET', 'POST'])
-@login_required  # ensure is logged then, only then can access the dashboard
+#@login_required  # ensure is logged then, only then can access the dashboard
 def managerdashboard():
     return render_template('dashboards/managerdashboard.html')
 
