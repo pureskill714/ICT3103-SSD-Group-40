@@ -12,4 +12,6 @@ EXPOSE 1433
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=10 \
   CMD /opt/mssql-tools/bin/sqlcmd -S 127.0.0.1 -U sa -P ${MSSQL_SA_PASSWORD} -Q "SELECT 1" -b -o /dev/null
 
+RUN ["chmod", "+x", "./docker-entrypoint.sh"]
+
 ENTRYPOINT ["./entrypoint.sh"]
