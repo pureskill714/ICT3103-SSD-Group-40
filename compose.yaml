@@ -21,17 +21,6 @@ services:
       db:
         condition: service_healthy
 
-
-  proxy:
-    build: proxy
-    restart: always
-    ports:
-      - 80:80
-    depends_on:
-      - flask
-    networks:
-      - frontnet
-
 networks:
   backnet:
     external: true
