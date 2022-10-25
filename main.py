@@ -253,13 +253,21 @@ def handle_csrf_error(error):
 def booking():
     form = BookingForm()
     if form.validate_on_submit():
-        print(session["userid"])
-        flash('Booking success!')
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
         conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
-
         cursor = conn.cursor()
+
+        data = ()
+        cursor.execute('SELECT room_type,start_date,end_date from Bookings2 where user_id = %d', session['userid'])
+        for row in cursor:
+            data = row
+
+        # User has booked a room prior, do not allow additional booking unless cancelled first
+        if len(data) != 0:
+            flash("A reservation by this account has already been found in the system. Please make another booking after your check-out day.")
+            return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
+
         insert_stmt = (
             "INSERT INTO Bookings2 (user_id,room_type, start_date, end_date)"
             "VALUES (%d,%s, %s, %s)"
@@ -271,8 +279,7 @@ def booking():
 
         conn.commit()
         conn.close()
-
-        return redirect(url_for('booking'))
+        return redirect(url_for('reservation'))
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
@@ -296,7 +303,7 @@ def reservation():
     else:
         return render_template('bookings/noreservation.html')
 
-    return render_template('bookings/reservation.html',room_type=room_type,start_date=start_date,end_date=end_date)
+    return render_template('bookings/reservation.html', room_type=room_type, start_date=start_date, end_date=end_date)
 
 
 if __name__ == '__main__':
