@@ -265,7 +265,8 @@ def booking():
 
         # User has booked a room prior, do not allow additional booking unless cancelled first
         if len(data) != 0:
-            flash("A reservation by this account has already been found in the system. Please make another booking after your check-out day.")
+            flash(
+                "A reservation by this account has already been found in the system. Please make another booking after your check-out day.")
             return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
         insert_stmt = (
@@ -279,7 +280,7 @@ def booking():
 
         conn.commit()
         conn.close()
-        return redirect(url_for('reservation'))
+        return render_template('bookings/bookingsuccess.html')
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
@@ -304,6 +305,35 @@ def reservation():
         return render_template('bookings/noreservation.html')
 
     return render_template('bookings/reservation.html', room_type=room_type, start_date=start_date, end_date=end_date)
+
+
+@app.route("/cancelbooking", methods=['GET', 'POST'])
+def cancelbooking():
+    cancel = CancelReservation()
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
+    cursor = conn.cursor()
+
+    # get the booking details of current logged in user
+    data = ()
+    cursor.execute('SELECT room_type,start_date,end_date from Bookings2 where user_id = %d', session['userid'])
+    for row in cursor:
+        data = row
+
+    if len(data) != 0:
+        room_type = data[0]
+        start_date = data[1]
+        end_date = data[2]
+    else:
+        return render_template('bookings/noreservation.html')
+
+    # when user press the cancel booking button
+    if request.method == 'POST':
+        cursor.execute('DELETE FROM Bookings2 WHERE user_id = %d',session['userid'])
+        conn.commit()
+        conn.close()
+        return render_template('bookings/cancelbookingsuccess.html')
+
+    return render_template('bookings/cancelbooking.html', room_type=room_type, start_date=start_date, end_date=end_date,cancel=cancel)
 
 
 if __name__ == '__main__':

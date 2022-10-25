@@ -62,7 +62,7 @@
                     <li><a href="{{url_for('customerdashboard')}}">Home</a></li>
                     <li><a href="{{url_for('booking')}}">Book Room</a></li>
                     <li><a href="{{url_for('reservation')}}">View My Reservation</a></li>
-                    <li><a href="{{url_for('cancelbooking')}}">Cancel Booking</a></li>
+                    <li><a href="{{url_for('customerdashboard')}}">Cancel Booking</a></li>
                     <li><a href="{{url_for('logout')}}">Logout</a></li>
                 </ul>
               </div>
@@ -72,45 +72,8 @@
       class="text-green text-center font-weight-bold"
       style="font-size: 40px;"
     >
-      Book A Room
+      Your reservation has been cancelled. We're sorry to see you leave! Hope you can come visit us some other time
     </h1>
-
-    <h4 class="text-blue text-center font-weight-bold" style="font-size: 20px;">
-      Standard Twin : Consist of 2 single beds<br>
-        Standard Queen : Consist of 1 Queen size bed<br>
-        Deluxe : Consist of 1 Queen size bed and 1 sofa bed<br>
-        All room-types come with Complimentary Broadband (wifi 1 mbps per user)
-    </h4>
-
-  <div class="container">
-       <form action="" method="post">
-           {{ form.csrf_token }}
-        {{ form.hidden_tag() }}
-        {% from "_formhelpers.html" import render_field %}
-            <dl>
-                {{ render_field(form.room_type) }}
-            </dl>
-
-            <dl>
-                {{ render_field(form.start_date) }}
-                {{ render_field(form.end_date)}}
-            </dl>
-        <p>{{ form.submit() }}</p>
-    </form>
-
-
-          <center>
-  {% with messages = get_flashed_messages() %}
-           {% if messages %}
-              {% for message in messages %}
-                 {{ message }}
-              {% endfor %}
-           {% endif %}
-        {% endwith %}
-  </center>
-
-        <br /><br />
-      </div>
-    </div>
-  </body>
-
+    <center>
+  <h6>Return to homepage <a class="fpwd" href="{{url_for('customerdashboard')}}">Click Here!</a></h6>
+    </center>
