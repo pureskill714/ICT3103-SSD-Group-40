@@ -10,6 +10,7 @@ from werkzeug.datastructures import ImmutableDict
 from forms import *
 import pymssql
 import re
+import flask
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
@@ -26,6 +27,16 @@ jinja_options = ImmutableDict(
     ])
 # Turn auto escaping on
 app.jinja_env.autoescape = True
+
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+)
+
+response = flask.Response()
+# We can set secure cookies in response
+response.set_cookie('key', 'value', secure=True, httponly=True, samesite='Lax')
 
 # Handling the login validation for Customers
 login_manager = LoginManager()  # Allow our app and flask login to work together
@@ -264,6 +275,28 @@ def booking():
         return redirect(url_for('booking'))
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
+
+
+@app.route("/reservation", methods=['GET', 'POST'])
+# @login_required
+def reservation():
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
+    cursor = conn.cursor()
+
+    # get the booking details of current logged in user
+    data = ()
+    cursor.execute('SELECT room_type,start_date,end_date from Bookings2 where user_id = %d', session['userid'])
+    for row in cursor:
+        data = row
+
+    if len(data) != 0:
+        room_type = data[0]
+        start_date = data[1]
+        end_date = data[2]
+    else:
+        return render_template('bookings/noreservation.html')
+
+    return render_template('bookings/reservation.html',room_type=room_type,start_date=start_date,end_date=end_date)
 
 
 if __name__ == '__main__':

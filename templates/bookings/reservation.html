@@ -72,45 +72,13 @@
       class="text-green text-center font-weight-bold"
       style="font-size: 40px;"
     >
-      Book A Room
+      Your Upcoming Reservation
     </h1>
-
+    <br>
     <h4 class="text-blue text-center font-weight-bold" style="font-size: 20px;">
-      Standard Twin : Consist of 2 single beds<br>
-        Standard Queen : Consist of 1 Queen size bed<br>
-        Deluxe : Consist of 1 Queen size bed and 1 sofa bed<br>
-        All room-types come with Complimentary Broadband (wifi 1 mbps per user)
+      Check-in Date : {{start_date}}<br>
+        Check-out Date : {{end_date}}<br>
+        Room Type : {{room_type}}<br>
+        <br>
     </h4>
-
-  <div class="container">
-       <form action="" method="post">
-           {{ form.csrf_token }}
-        {{ form.hidden_tag() }}
-        {% from "_formhelpers.html" import render_field %}
-            <dl>
-                {{ render_field(form.room_type) }}
-            </dl>
-
-            <dl>
-                {{ render_field(form.start_date) }}
-                {{ render_field(form.end_date)}}
-            </dl>
-        <p>{{ form.submit() }}</p>
-    </form>
-
-
-          <center>
-  {% with messages = get_flashed_messages() %}
-           {% if messages %}
-              {% for message in messages %}
-                 {{ message }}
-              {% endfor %}
-           {% endif %}
-        {% endwith %}
-  </center>
-
-        <br /><br />
-      </div>
-    </div>
-  </body>
-
+  <h2>You may check in after 12pm. Room number will be allocated to you upon arrival date. Please check in with the front receptionist. We hope you enjoy your stay at the Cozy Inn!</h2>
