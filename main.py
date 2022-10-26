@@ -58,7 +58,6 @@ class RegisterForm(FlaskForm):
     submit = SubmitField("Register")  # Register button once they are done
 
 
-
 class LoginForm(FlaskForm):
     username = StringField(validators=[InputRequired(),
                                        Length(min=4, max=32)], render_kw={"placeholder": "Username"})
@@ -71,42 +70,95 @@ class LoginForm(FlaskForm):
     
     submit = SubmitField("Login")
 
+class StaffRegisterForm(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+
+    # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+
+    # For users to choose a username
+    username = StringField(validators=[InputRequired(),
+                                       Length(min=4, max=32)])
+
+    submit = SubmitField("Register")  # Register button once they are done
 
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
     return render_template('index.html')
 
+def encode(input):
+    #Function that checks if the user inputs can be encoded and decoded to and from utf-8
+    #Can help to prevent buffer overflow/code injection/
+    try:
+        return input.encode('utf-8', 'strict').decode('utf-8', 'strict')
+    except UnicodeDecodeError:
+        return None
 
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 def login():
     form = LoginForm()
-    # check if the user exists in the database
     if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data)
         
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
+        #Prevent users from entering non-ascii encoded characters
+        #username = form.username.data.encode(encoding="ascii", errors="ignore")
+        #print(username)
 
-        #Fetches original password hash of the user
-        #Might replace this execute command with a function for higher security
-        cursor.execute('SELECT Password FROM Users WHERE Username = %s', form.username.data) 
+        #Run encode/decode check functions
+        passwordInput = encode(form.password.data)
+        username = encode(form.username.data)
 
-        #Uses bcrypt to check the password hashes and calls the login_user stored procedure to 
-        res = cursor.callproc('login_user', (form.username.data, (int(bcrypt.check_password_hash(cursor.fetchone()[0], form.password.data))), request.remote_addr, pymssql.output(str), pymssql.output(int)))
-        
+        #If either values are None, then the user input could not be encoded into UTF-8
+        if passwordInput is None or username is None:
+            flash("Please check your user inputs again.")
+            return render_template('login.html', form=form)
+
+        #Fetches original password hash of the user and compares the hash with the password provided using bcrypt
+        cursor.execute('EXEC retrieve_password @username = %s', (username))
+        passwordHash = cursor.fetchone()
+
+        #Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
+        try:
+            passResult = bcrypt.check_password_hash(passwordHash, passwordInput)
+        except:
+            #Would likely occur if there was user had keyed in an invalid username
+            flash("Username or Password incorrect. Please try again")
+            passResult = 0
+
+        #res = cursor.callproc('login_user', (username, int(passResult), request.remote_addr, pymssql.output(str), pymssql.output(int),))
+
+        cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s", (username, int(passResult), request.remote_addr))
         conn.commit()
         conn.close()
 
-        user_email = res[3] #used for MFA function
-        role_ID = res[4] #used for Flask-Authorize to properly authorize users
-
+        try:
+            res = cursor.fetchone()
+            user_email = res[0]
+            role_ID = res[1]
+        except:
+            # Login failed, so no user email or role ID returned to res
+            user_email = None
+            role_ID = None
+        
         if user_email is not None: #Login was successful
             #Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
-            return redirect(url_for('customerdashboard'))
+            if role_ID == 1:
+                return redirect(url_for('customerdashboard'))
+            elif role_ID == 2:
+                return redirect(url_for('managerdashboard'))
+            else:
+                return render_template('login.html', form=form)
         else:
             flash("Username or Password incorrect. Please try again")
 
@@ -123,7 +175,7 @@ def staffdashboard():
     return render_template('dashboards/staffdashboard.html')
 
 @app.route("/managerdashboard", methods=['GET', 'POST'])
-@login_required  # ensure is logged then, only then can access the dashboard
+#@login_required  # ensure is logged then, only then can access the dashboard
 def managerdashboard():
     return render_template('dashboards/managerdashboard.html')
 
@@ -146,25 +198,43 @@ def register():
     form = RegisterForm()
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data)
-
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
 
+        #Run encode/decode check functions
+        passwordInput = encode(form.password.data)
+        username = encode(form.username.data)
+        email = encode(form.email.data)
+        fname = encode(form.firstname.data)
+        lname = encode(form.lastname.data)
+
+        #Verifies that there are no issues with encoding
+        if passwordInput is None or username is None or email is None or fname is None or lname is None:
+            flash("Please check your user inputs again.")
+            return render_template('register.html', form=form)
+
+        hashed_password = bcrypt.generate_password_hash(passwordInput)
         cursor = conn.cursor()
-        
-        #Procedure for registration
-        res = cursor.callproc('register_customer', (form.username.data, hashed_password, form.email.data, form.firstname.data, form.lastname.data, pymssql.output(int),))
-        
+
+        #The old procedure for registration via running the stored procedure, not sure which method is better
+        #args = (str(form.username.data), hashed_password, form.email.data, form.firstname.data, form.lastname.data, pymssql.output(int),)
+        #print(args)
+        #res = cursor.callproc('register_customer', args)
+
+        #Execute statement for running the stored procedure
+        #Raw inputs are formatted and parameterized into a prepared statement
+        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s", (username, hashed_password, email, fname, lname))
+        res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
         
-        if res[5] == 2:
-            # Stored procedure was ran successfully and 
+        if res == 2:
+            # Stored procedure was ran successfully and user successfully registered
             return redirect(url_for('registersuccess'))  # redirect to login page after register
-        elif res[5] == 1:
+        elif res == 1:
             # Stored procedure was ran but failed because username or email is already in use
+            # Create log and send email to user
             flash("Username or Email may already be in use. Please try again. ") 
         else:
             # Somehow the stored procedure did not run for whatever reason
@@ -172,25 +242,77 @@ def register():
 
     return render_template('register.html', form=form)
 
+@app.route("/staffregister", methods=['GET', 'POST'])
+def staffregister():
+    form = StaffRegisterForm()
+    # Whenever we submit this form, we immediately create a hash version of the password and submit to database
+    if form.validate_on_submit():
+        #Creating connections individually to avoid open connections
+        #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+
+        #Run encode/decode check functions
+        username = encode(form.username.data)
+        email = encode(form.email.data)
+        fname = encode(form.firstname.data)
+        lname = encode(form.lastname.data)
+        #contact = encode(form.contact.data)
+
+        if username is None or email is None or fname is None or lname is None:
+            flash("Please check your user inputs again.")
+            return render_template('register.html', form=form)
+        
+        cursor = conn.cursor()
+        cursor.execute("EXEC register_staff @username = %s, @email = %s, @fname = %s, @lname = %s", (username, email, fname, lname))
+        res = cursor.fetchone()[0]
+        conn.commit()
+        conn.close()
+
+        #Generate a reset password link and send it to the email used to create the account. 
+        #Since the account has no valid password assigned to it, this password link must not check if the user knows the old password.
+        
+        if res == 2:
+            # Stored procedure was ran successfully and user successfully registered
+            return redirect(url_for('staffregistersucess'))  # redirect to login page after register
+        elif res == 1:
+            # Stored procedure was ran but failed because username or email is already in use
+            # Create log and send email to user
+            flash("Username or Email may already be in use. Please try again. ") 
+        else:
+            # Somehow the stored procedure did not run for whatever reason
+            flash("Username or Email may already be in use. Please try again. ")
+
+    return render_template('staffregister.html', form=form)
 
 @app.route('/customertable')
-@login_required  # ensure is logged then, only then can log out
 def customertable():
-    # Implement authorization with Flask-Authorize
     return render_template('tables/customertable.html')
 
-
 @app.route('/stafftable')
-@login_required  # ensure is logged then, only then can log out
 def stafftable():
-    # Implement authorization with Flask-Authorize
     return render_template('tables/stafftable.html')
 
+@app.route('/staffupdatesearch', methods=['GET', 'POST'])
+def staffUpdateSearch():
+    return render_template('staffCRUD/staff_update_search.html')
+
+@app.route('/staffupdatevalue', methods=['GET', 'POST'])
+def staffUpdateValue():
+    return render_template('staffCRUD/staff_update_value.html')
+
+@app.route('/staffupdatesubmit', methods=['GET', 'POST'])
+def staffUpdateSubmit():
+    return render_template('staffCRUD/staff_update_sucess.html')
 
 @app.route('/registersuccess')
 @login_required  # ensure is logged then, only then can log out
 def registersuccess():
     return render_template('registersucess.html')
+
+@app.route('/staffregistersucess')
+@login_required  # ensure is logged then, only then can log out
+def staffregistersucess():
+    return render_template('staffregistersucess.html')
 
 # 400 - To handle Bad request
 @app.route('/400')
