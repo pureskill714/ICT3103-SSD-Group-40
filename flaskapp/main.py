@@ -9,6 +9,8 @@ from wtforms.validators import InputRequired, Length, ValidationError, Email
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import pymssql
+import os
+sql_pass = "9WoH697&p2oM" #os.environ['MSSQL_SA_PASSWORD']
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
@@ -87,7 +89,7 @@ def login():
         
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect(server="localhost", user='sa', password='PAssw0rd123q', database="3203")
+        conn = pymssql.connect(server="localhost", user='sa', password=sql_pass, database="3203")
         cursor = conn.cursor()
 
 
@@ -150,7 +152,7 @@ def register():
 
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect(server="localhost", user='sa', password='PAssw0rd123q', database="3203")
+        conn = pymssql.connect(server="localhost", user='sa', password=sql_pass, database="3203")
 
         cursor = conn.cursor()
         
@@ -238,4 +240,4 @@ def handle_csrf_error(error):
     return render_template('403.html'), 403
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
