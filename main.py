@@ -54,6 +54,7 @@ def load_user_customer(user_id):
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
+    session.clear() # To ensure the session is cleared before passing
     session.pop('username', None) # Remove session after return to home page 
     resp = app.make_response(render_template('index.html'))
     resp.set_cookie('username', expires=0) # to set expiry time of cookie to 0 after user logout
@@ -66,7 +67,7 @@ def login():
     form = LoginForm()
     # check if the user exists in the database
     if form.validate_on_submit():
-        print(form.username.data)
+        session.clear() # To ensure the session is cleared before passing
         session['username'] = form.username.data
         hashed_password = bcrypt.generate_password_hash(form.password.data)
 
@@ -129,6 +130,7 @@ def managerdashboard():
 # @login_required  # ensure is logged then, only then can log out
 def logout():
     logout_user()  # log the user out
+    session.clear()
     session.pop('username', None) # Remove session after user has logout
     return redirect(url_for('login'))  # redirect user back to login page
 
@@ -142,6 +144,7 @@ def forgetPassword():
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
+    #session.clear() # To ensure the session is cleared before passing
     session['username'] = form.username.data
     if form.validate():
         pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
