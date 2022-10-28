@@ -54,7 +54,11 @@ def load_user_customer(user_id):
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    return render_template('index.html')
+    session.pop('username', None) # Remove session after return to home page 
+    resp = app.make_response(render_template('index.html'))
+    resp.set_cookie('username', expires=0) # to set expiry time of cookie to 0 after user logout
+    return resp
+    #return render_template('index.html')
 
 
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
@@ -68,7 +72,7 @@ def login():
 
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
         # get the User_ID of the user who logged in
@@ -125,6 +129,7 @@ def managerdashboard():
 # @login_required  # ensure is logged then, only then can log out
 def logout():
     logout_user()  # log the user out
+    session.pop('username', None) # Remove session after user has logout
     return redirect(url_for('login'))  # redirect user back to login page
 
 
@@ -137,7 +142,7 @@ def forgetPassword():
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
-
+    session['username'] = form.username.data
     if form.validate():
         pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
         if re.search(pattern, form.password.data):
@@ -152,7 +157,7 @@ def register():
 
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
 
         cursor = conn.cursor()
 
@@ -193,7 +198,7 @@ def stafftable():
 
 @app.route('/registersuccess')
 def registersuccess():
-    return render_template('registersucess.html')
+    return render_template('registersucess.html', username=session['username'])
 
 
 # 400 - To handle Bad request
@@ -257,7 +262,7 @@ def booking():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
         data = ()
@@ -290,7 +295,7 @@ def booking():
 @app.route("/reservation", methods=['GET', 'POST'])
 # @login_required
 def reservation():
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
 
     # get the booking details of current logged in user
@@ -312,7 +317,7 @@ def reservation():
 @app.route("/cancelbooking", methods=['GET', 'POST'])
 def cancelbooking():
     cancel = CancelReservation()
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103 Hotel")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
 
     # get the booking details of current logged in user
