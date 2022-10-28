@@ -62,6 +62,8 @@ def login():
     form = LoginForm()
     # check if the user exists in the database
     if form.validate_on_submit():
+        print(form.username.data)
+        session['username'] = form.username.data
         hashed_password = bcrypt.generate_password_hash(form.password.data)
 
         # Creating connections individually to avoid open connections
@@ -104,7 +106,7 @@ def login():
 @app.route("/customerdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
-    return render_template('dashboards/customerdashboard.html')
+    return render_template('dashboards/customerdashboard.html', username=session['username'])
 
 
 @app.route("/staffdashboard", methods=['GET', 'POST'])
@@ -120,7 +122,7 @@ def managerdashboard():
 
 
 @app.route("/logout", methods=['GET', 'POST'])
-@login_required  # ensure is logged then, only then can log out
+# @login_required  # ensure is logged then, only then can log out
 def logout():
     logout_user()  # log the user out
     return redirect(url_for('login'))  # redirect user back to login page
@@ -328,12 +330,13 @@ def cancelbooking():
 
     # when user press the cancel booking button
     if request.method == 'POST':
-        cursor.execute('DELETE FROM Bookings2 WHERE user_id = %d',session['userid'])
+        cursor.execute('DELETE FROM Bookings2 WHERE user_id = %d', session['userid'])
         conn.commit()
         conn.close()
         return render_template('bookings/cancelbookingsuccess.html')
 
-    return render_template('bookings/cancelbooking.html', room_type=room_type, start_date=start_date, end_date=end_date,cancel=cancel)
+    return render_template('bookings/cancelbooking.html', room_type=room_type, start_date=start_date, end_date=end_date,
+                           cancel=cancel)
 
 
 if __name__ == '__main__':
