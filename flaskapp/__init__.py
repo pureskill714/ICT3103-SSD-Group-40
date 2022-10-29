@@ -15,9 +15,16 @@ def create_app(test_config=None):
         RECAPTCHA_PUBLIC_KEY='6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe',
         RECAPTCHA_PRIVATE_KEY='6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W',
     )
-    bcrypt = Bcrypt(app)
+    from flaskapp.main import login_manager
+    login_manager.init_app(app)
 
-    csrf = CSRFProtect(app)  # globally enable csrf protection within the application
+    # against attacks such as Cross site request forgery (CSRF)
+    from flaskapp.main import bcrypt
+    bcrypt.init_app(app)
+
+    from flaskapp.main import csrf
+    csrf.init_app(app)  # globally enable csrf protection within the application
+
 
     if test_config is None:
         # load the instance config, if it exists, when not testing

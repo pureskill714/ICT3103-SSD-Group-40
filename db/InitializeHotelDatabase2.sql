@@ -1,9 +1,3 @@
-CREATE DATABASE [3203]
-GO
-
-USE [3203]
-GO
-
 DROP TABLE IF EXISTS dbo.Room_Availability;
 GO
 
@@ -19,7 +13,7 @@ GO
 DROP TABLE IF EXISTS dbo.RoomTypes;
 GO
 
-DROP TABLE IF EXISTS dbo.CustomerDetails;
+DROP TABLE IF EXISTS dbo.UserDetails;
 GO
 
 DROP TABLE IF EXISTS dbo.Users;
@@ -59,21 +53,22 @@ CREATE UNIQUE INDEX uq_userid ON dbo.Users(User_ID)
 CREATE UNIQUE INDEX uq_email ON dbo.Users(Email)
 GO
 
-CREATE TABLE dbo.CustomerDetails (
+CREATE TABLE dbo.UserDetails (
   [User_ID] INT NOT NULL,
   [Firstname] VARCHAR(64) NULL DEFAULT NULL,
   [Lastname] VARCHAR(64) NULL DEFAULT NULL,
   [Address] VARCHAR(255) NULL DEFAULT NULL,
   [DOB] DATE NULL DEFAULT NULL, 
-  [Country] VARCHAR(64) NULL DEFAULT NULL,
-  [City] VARCHAR(64) NULL DEFAULT NULL,
+  [Country] VARCHAR(128) NULL DEFAULT NULL,
+  [City] VARCHAR(128) NULL DEFAULT NULL,
+  [PhoneNo] BIGINT NULL DEFAULT NULL,
   PRIMARY KEY ([User_ID]),
   CONSTRAINT FK_UserID FOREIGN KEY (User_ID) REFERENCES Users(User_ID))
 GO
 
 CREATE TABLE dbo.RoomTypes (
   [Room_Type_ID] INT NOT NULL,
-  [Room_Cost] DECIMAL(10,2) NULL DEFAULT NULL,
+  [Room_Cost] DECIMAL(10,2) NOT NULL DEFAULT 500,
   [Room_Type_Description] VARCHAR(255) NULL DEFAULT NULL,
   PRIMARY KEY ([Room_Type_ID]))
 GO
@@ -89,13 +84,15 @@ CREATE UNIQUE INDEX roomid ON dbo.Rooms(Room_ID)
 GO
 
 CREATE TABLE dbo.Bookings (
-  [Booking_ID] INT NOT NULL,
+  [Booking_ID] INT IDENTITY(1,1),
   [User_ID] INT NOT NULL,
   [Room_ID] INT NOT NULL,
   [Booking_Status] VARCHAR(30) NOT NULL,
   [Booking_Details] VARCHAR(255) NULL,
   [Start_Date] DATE NOT NULL,
   [End_Date] DATE NOT NULL,
+  [Created_At] DATETIME2(0) NOT NULL DEFAULT GETDATE(),
+  [Last_Modified] DATETIME2(0) NULL DEFAULT GETDATE(),
   PRIMARY KEY ([Booking_ID]),
   CONSTRAINT FK_BookingUserID FOREIGN KEY (User_ID) REFERENCES Users(User_ID),
   CONSTRAINT FK_BookingRoomID FOREIGN KEY (Room_ID) REFERENCES Rooms(Room_ID))

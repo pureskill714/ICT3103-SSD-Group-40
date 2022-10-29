@@ -1,5 +1,7 @@
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
+import os
+
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
@@ -14,7 +16,7 @@ mainapp = Blueprint('', __name__, url_prefix='/')
 
 
 
-sql_pass = "9WoH697&p2oM" #os.environ['MSSQL_SA_PASSWORD']
+sql_pass = os.environ['MSSQL_SA_PASSWORD']
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
@@ -27,7 +29,7 @@ csrf = CSRFProtect(app) #globally enable csrf protection within the application
 
 # Handling the login validation for Customers
 login_manager = LoginManager()  # Allow our app and flask login to work together
-login_manager.init_app(app)
+# login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message = u"Username or Password incorrect. Please try again"
 
@@ -255,7 +257,7 @@ def staffregister():
     if form.validate_on_submit():
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("localhost", 'sa', sql_pass, "3203")
 
         #Run encode/decode check functions
         username = encode(form.username.data)

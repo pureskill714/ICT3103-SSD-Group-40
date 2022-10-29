@@ -1,8 +1,3 @@
-USE [3203]
-GO
-
-DROP PROCEDURE IF EXISTS login_user
-GO
 /*
 login_user is a stored procedure that verifies the user's username and password during login
 Blocks logins if too many logon attempts (>30) have been performed without a successful login
@@ -18,26 +13,27 @@ If a login is successful:
 If a login is unsuccessful:
 - The no. of attempts is incremented by 1
 */
+
+DROP PROCEDURE IF EXISTS login_user
+GO
+
 CREATE PROCEDURE login_user (
 @username VARCHAR(32), 
 @login_success TINYINT, 
-@IP_Address VARCHAR(40), 
-@email VARCHAR(255) OUTPUT,
-@role_id TINYINT OUTPUT)
+@IP_Address VARCHAR(40))
 AS 
 BEGIN
 	DECLARE @Attempts_check INT
 	SELECT @Attempts_check = No_Of_Attempts FROM Users WHERE Username = @username
 	IF @Attempts_check < 30 AND @Attempts_check IS NOT NULL AND @login_success = 1
 		BEGIN
-			SELECT @email = email, @role_id = Role_ID
-			FROM Users
-			WHERE Username = @username
-			
 			UPDATE Users 
 			SET Last_Logon_Time = GETDATE(), Last_Logon_IP = @IP_Address, No_Of_Logons = No_Of_Logons + 1, No_Of_Attempts = 0
 			WHERE Username = @username
 
+			SELECT TOP 1 email, Role_ID, User_UUID
+			FROM Users
+			WHERE Username = @username
 		END
 	ELSE
 		BEGIN
@@ -48,6 +44,9 @@ BEGIN
 END
 GO
 
+/*
+Usage:
+
 DECLARE @return TINYINT 
 DECLARE @emailMFA VARCHAR(255)
 DECLARE @role_id TINYINT
@@ -57,3 +56,4 @@ EXEC login_user @username = 'test_user1', @login_success = 1, @IP_Address = '54.
 SELECT @return, @emailMFA, @role_id
 SELECT * FROM dbo.Users
 GO
+*/
