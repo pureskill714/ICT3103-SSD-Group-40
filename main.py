@@ -24,7 +24,7 @@ seckey = data1 + data3
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = seckey  # uses randomise secret key to secure session cookies and protect our webform
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=1) # To give session timeout if user idle
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
 # against attacks such as Cross site request forgery (CSRF)
