@@ -6,14 +6,25 @@ from flask_login import UserMixin, LoginManager, login_required, login_user, log
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from werkzeug.datastructures import ImmutableDict
+from datetime import timedelta
+import os
+import base64
 
 from forms import *
 import pymssql
 import re
 import flask
 
+data1 = os.urandom(16)
+secret = "secretcode"
+code = bytes(secret,"utf-8")
+data3 = base64.b64encode(code)
+seckey = data1 + data3
+
+
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
-app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
+app.config['SECRET_KEY'] = seckey  # uses randomise secret key to secure session cookies and protect our webform
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=1) # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
 # against attacks such as Cross site request forgery (CSRF)
@@ -68,6 +79,7 @@ def login():
     # check if the user exists in the database
     if form.validate_on_submit():
         session.clear() # To ensure the session is cleared before passing
+        session.permanent = True
         session['username'] = form.username.data
         hashed_password = bcrypt.generate_password_hash(form.password.data)
 
@@ -111,8 +123,12 @@ def login():
 @app.route("/customerdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
-    return render_template('dashboards/customerdashboard.html', username=session['username'])
-
+    # To check session is available else will return to timeout page
+    if "username" in session:
+        username = session["username"]
+        return render_template('dashboards/customerdashboard.html', username=session['username'])
+    else:
+        return redirect(url_for('timeout'))
 
 @app.route("/staffdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
@@ -130,7 +146,7 @@ def managerdashboard():
 # @login_required  # ensure is logged then, only then can log out
 def logout():
     logout_user()  # log the user out
-    session.clear()
+    session.clear() # Ensure session is cleared
     session.pop('username', None) # Remove session after user has logout
     return redirect(url_for('login'))  # redirect user back to login page
 
@@ -144,7 +160,6 @@ def forgetPassword():
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
-    #session.clear() # To ensure the session is cleared before passing
     session['username'] = form.username.data
     if form.validate():
         pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
@@ -204,6 +219,11 @@ def registersuccess():
     return render_template('registersucess.html', username=session['username'])
 
 
+@app.route("/timeout")
+def timeout():
+    session.clear() # Ensure session is cleared
+    return render_template('timeout.html')
+
 # 400 - To handle Bad request
 @app.route('/400')
 def error400():
@@ -249,8 +269,9 @@ def page_not_found(error):
 # To direct to 500 page
 @app.errorhandler(500)
 def internal_error(error):
+    #internal Server error
     return render_template('500.html'), 500
-
+    
 
 # To direct to CSRF validation error
 @app.errorhandler(CSRFError)
@@ -262,35 +283,39 @@ def handle_csrf_error(error):
 # @login_required
 def booking():
     form = BookingForm()
-    if form.validate_on_submit():
-        # Creating connections individually to avoid open connections
-        # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
-        cursor = conn.cursor()
+    # If session is not available will redirect to timeout page else continue validate 
+    if 'username' not in session:
+        return redirect(url_for('timeout'))
+    else:    
+        if form.validate_on_submit():
+            # Creating connections individually to avoid open connections
+            # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
+            conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
+            cursor = conn.cursor()
 
-        data = ()
-        cursor.execute('SELECT room_type,start_date,end_date from Bookings2 where user_id = %d', session['userid'])
-        for row in cursor:
-            data = row
+            data = ()
+            cursor.execute('SELECT room_type,start_date,end_date from Bookings2 where user_id = %d', session['userid'])
+            for row in cursor:
+                data = row
 
-        # User has booked a room prior, do not allow additional booking unless cancelled first
-        if len(data) != 0:
-            flash(
-                "A reservation by this account has already been found in the system. Please make another booking after your check-out day.")
-            return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
+            # User has booked a room prior, do not allow additional booking unless cancelled first
+            if len(data) != 0:
+                flash(
+                    "A reservation by this account has already been found in the system. Please make another booking after your check-out day.")
+                return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
-        insert_stmt = (
-            "INSERT INTO Bookings2 (user_id,room_type, start_date, end_date)"
-            "VALUES (%d,%s, %s, %s)"
-        )
-        data = (session["userid"], form.room_type.data, form.start_date.data, form.end_date.data)
+            insert_stmt = (
+                "INSERT INTO Bookings2 (user_id,room_type, start_date, end_date)"
+                "VALUES (%d,%s, %s, %s)"
+            )
+            data = (session["userid"], form.room_type.data, form.start_date.data, form.end_date.data)
 
-        # Send the data to database
-        cursor.execute(insert_stmt, data)
+            # Send the data to database
+            cursor.execute(insert_stmt, data)
 
-        conn.commit()
-        conn.close()
-        return render_template('bookings/bookingsuccess.html')
+            conn.commit()
+            conn.close()
+            return render_template('bookings/bookingsuccess.html')
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
