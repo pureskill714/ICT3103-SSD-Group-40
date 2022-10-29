@@ -84,25 +84,31 @@
 </center>
   <table>
     <tr>
-        <th>User ID</th>
+        <th>Username</th>
+        <th>UUID</th>
+        <th>Email</th>
+        <th>Last Logon Time</th>
         <th>First Name</th>
         <th>Last Name</th>
-        <th>Username</th>
-        <th>Email</th>
+        <th>Address</th>
+        <th>DOB</th>
+        <th>Country</th>
+        <th>City</th>
         <th>Contact</th>
-        <th>Role</th>
-        <th>Employee No.</th>
     </tr>
     <tr>
         {% for user in users %}
-        <td>{{ user.id }}</td>
-        <td>{{ user.firstname }}</td>
-        <td>{{ user.lastname }}</td>
-        <td>{{ user.username}}</td>
-        <td>{{ user.email }}</td>
-        <td>{{ user.contact }}</td>
-        <td>{{ user.role }}</td>
-        <td>{{ user.emp_no }}</td>
+        <td>{{ user[0] }}</td>
+        <td>{{ user[1] }}</td>
+        <td>{{ user[2] }}</td>
+        <td>{{ user[3] }}</td>
+        <td>{{ user[4] }}</td>
+        <td>{{ user[5] }}</td>
+        <td>{{ user[6] }}</td>
+        <td>{{ user[7] }}</td>
+        <td>{{ user[8] }}</td>
+        <td>{{ user[9] }}</td>
+        <td>{{ user[10]}}</td>
     </tr>
        {% endfor %}
 

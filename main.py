@@ -127,10 +127,10 @@ def login():
         #Fetches original password hash of the user and compares the hash with the password provided using bcrypt
         cursor.execute('EXEC retrieve_password @username = %s', (username))
         passwordHash = cursor.fetchone()
-
+        
         #Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
         try:
-            passResult = bcrypt.check_password_hash(passwordHash, passwordInput)
+            passResult = bcrypt.check_password_hash(passwordHash[0], passwordInput)
         except:
             #Would likely occur if there was user had keyed in an invalid username
             flash("Username or Password incorrect. Please try again")
@@ -139,11 +139,10 @@ def login():
         #res = cursor.callproc('login_user', (username, int(passResult), request.remote_addr, pymssql.output(str), pymssql.output(int),))
 
         cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s", (username, int(passResult), request.remote_addr))
-        conn.commit()
-        conn.close()
 
         try:
             res = cursor.fetchone()
+            
             user_email = res[0]
             role_ID = res[1]
         except:
@@ -151,6 +150,8 @@ def login():
             user_email = None
             role_ID = None
         
+        conn.commit()
+        conn.close()
         if user_email is not None: #Login was successful
             #Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             if role_ID == 1:
@@ -165,12 +166,12 @@ def login():
     return render_template('login.html', form=form)
 
 @app.route("/customerdashboard", methods=['GET', 'POST'])
-@login_required  # ensure is logged then, only then can access the dashboard
+#@login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
     return render_template('dashboards/customerdashboard.html')
 
 @app.route("/staffdashboard", methods=['GET', 'POST'])
-@login_required  # ensure is logged then, only then can access the dashboard
+#@login_required  # ensure is logged then, only then can access the dashboard
 def staffdashboard():
     return render_template('dashboards/staffdashboard.html')
 
@@ -286,22 +287,63 @@ def staffregister():
 
 @app.route('/customertable')
 def customertable():
-    return render_template('tables/customertable.html')
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM get_customer")
+    res = cursor.fetchall()
+
+    conn.close()
+    return render_template('tables/customertable.html', users = res)
 
 @app.route('/stafftable')
 def stafftable():
-    return render_template('tables/stafftable.html')
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM get_staff")
+    res = cursor.fetchall()
+    
+    conn.close()
+    return render_template('tables/stafftable.html', users = res)
 
 @app.route('/staffupdatesearch', methods=['GET', 'POST'])
-def staffUpdateSearch():
+def staffUpdateSearch(): 
     return render_template('staffCRUD/staff_update_search.html')
 
 @app.route('/staffupdatevalue', methods=['GET', 'POST'])
 def staffUpdateValue():
-    return render_template('staffCRUD/staff_update_value.html')
+    username = request.form['username']
+
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    cursor.execute("EXEC user_details %s", username)
+    res = list(cursor.fetchone())
+    for i in range(len(res)):
+        if res[i] == None:
+            res[i] = ""
+    print(res)
+    conn.close()
+
+    return render_template('staffCRUD/staff_update_value.html', details = res, username = username)
 
 @app.route('/staffupdatesubmit', methods=['GET', 'POST'])
 def staffUpdateSubmit():
+    username = request.form['username']
+    firstname = request.form['firstname']    
+    lastname = request.form['lastname']
+    email = request.form['email']
+    address = request.form['address']
+    DOB = request.form['DOB']
+    country = request.form['country']
+    city = request.form['city']
+    contact = request.form['contact']
+    print(username, firstname, lastname, email, address, DOB, country, city, contact)
+
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d", (username, email, firstname, lastname, address, DOB, country, city, contact))
+    conn.commit()
+
+    conn.close()
     return render_template('staffCRUD/staff_update_sucess.html')
 
 @app.route('/registersuccess')
@@ -313,6 +355,15 @@ def registersuccess():
 @login_required  # ensure is logged then, only then can log out
 def staffregistersucess():
     return render_template('staffregistersucess.html')
+
+@app.route('/staffdeletesearch', methods=['GET', 'POST'])
+def staffDeleteSearch():
+    return render_template('staffCRUD/staff_delete_search.html')
+
+
+@app.route('/staffdeletesubmit', methods=['GET', 'POST'])
+def staffDeleteSubmit():
+    return render_template('staffCRUD/staff_update_sucess.html')
 
 # 400 - To handle Bad request
 @app.route('/400')
