@@ -9,7 +9,11 @@ from wtforms.validators import InputRequired, Length, ValidationError, Email
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import pymssql
-import os
+from flask import Blueprint, render_template
+mainapp = Blueprint('', __name__, url_prefix='/')
+
+
+
 sql_pass = "9WoH697&p2oM" #os.environ['MSSQL_SA_PASSWORD']
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
@@ -75,12 +79,12 @@ class LoginForm(FlaskForm):
 
 
 # App routes help to redirect to different pages of the website
-@app.route("/", methods=['GET', 'POST'])
+@mainapp.route("/", methods=['GET', 'POST'])
 def home():
     return render_template('index.html')
 
 
-@app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
+@mainapp.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 def login():
     form = LoginForm()
     # check if the user exists in the database
@@ -114,36 +118,36 @@ def login():
 
     return render_template('login.html', form=form)
 
-@app.route("/customerdashboard", methods=['GET', 'POST'])
+@mainapp.route("/customerdashboard", methods=['GET', 'POST'])
 @login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
     return render_template('dashboards/customerdashboard.html')
 
-@app.route("/staffdashboard", methods=['GET', 'POST'])
+@mainapp.route("/staffdashboard", methods=['GET', 'POST'])
 @login_required  # ensure is logged then, only then can access the dashboard
 def staffdashboard():
     return render_template('dashboards/staffdashboard.html')
 
-@app.route("/managerdashboard", methods=['GET', 'POST'])
+@mainapp.route("/managerdashboard", methods=['GET', 'POST'])
 @login_required  # ensure is logged then, only then can access the dashboard
 def managerdashboard():
     return render_template('dashboards/managerdashboard.html')
 
 
-@app.route("/logout", methods=['GET', 'POST'])
+@mainapp.route("/logout", methods=['GET', 'POST'])
 @login_required  # ensure is logged then, only then can log out
 def logout():
     logout_user()  # log the user out
     return redirect(url_for('login'))  # redirect user back to login page
 
 
-@app.route("/forgetPassword", methods=['GET', 'POST'])
+@mainapp.route("/forgetPassword", methods=['GET', 'POST'])
 def forgetPassword():
     logout_user()  # log the user out
     return render_template('forgetpassword.html')
 
 
-@app.route("/register", methods=['GET', 'POST'])
+@mainapp.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
@@ -175,67 +179,67 @@ def register():
     return render_template('register.html', form=form)
 
 
-@app.route('/customertable')
+@mainapp.route('/customertable')
 @login_required  # ensure is logged then, only then can log out
 def customertable():
     # Implement authorization with Flask-Authorize
     return render_template('tables/customertable.html')
 
 
-@app.route('/stafftable')
+@mainapp.route('/stafftable')
 @login_required  # ensure is logged then, only then can log out
 def stafftable():
     # Implement authorization with Flask-Authorize
     return render_template('tables/stafftable.html')
 
 
-@app.route('/registersuccess')
+@mainapp.route('/registersuccess')
 @login_required  # ensure is logged then, only then can log out
 def registersuccess():
     return render_template('registersucess.html')
 
 # 400 - To handle Bad request
-@app.route('/400')
+@mainapp.route('/400')
 def error400():
     abort(400)
 
 # 401 - To handle error of Unauthorized request
-@app.route('/401')
+@mainapp.route('/401')
 def error401():
     abort(401)
 
 # 404 - To handle error in matching the Request URL
-@app.route('/404')
+@mainapp.route('/404')
 def error404():
     abort(404)
 
 # 500 - To handle error in Internal Server Error
-@app.route('/500')
+@mainapp.route('/500')
 def error500():
     abort(500)
 
 # To direct to 400 page
-@app.errorhandler(400)
+@mainapp.errorhandler(400)
 def unauthorized_page(error):
     return render_template('400.html'), 400
     
 # To direct to 401 page
-@app.errorhandler(401)
+@mainapp.errorhandler(401)
 def unauthorized_page(error):
     return render_template('401.html'), 401
     
 # To direct to 404 page
-@app.errorhandler(404)
+@mainapp.errorhandler(404)
 def page_not_found(error):
     return render_template('404.html'), 404
 
 # To direct to 500 page
-@app.errorhandler(500)
+@mainapp.errorhandler(500)
 def internal_error(error):
     return render_template('500.html'), 500
 
 # To direct to CSRF validation error
-@app.errorhandler(CSRFError)
+@mainapp.errorhandler(CSRFError)
 def handle_csrf_error(error):
     return render_template('403.html'), 403
 
