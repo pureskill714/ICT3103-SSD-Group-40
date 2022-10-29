@@ -3,7 +3,6 @@
 import os
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort
-from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators

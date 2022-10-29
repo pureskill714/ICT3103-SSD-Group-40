@@ -3,13 +3,13 @@ FROM python:3.10-bullseye
 
 WORKDIR /flask
 COPY requirements.txt /flask
-COPY app.py /flask
+COPY application.py /flask
 RUN apt-get update
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip3 install -r requirements.txt
 
-COPY . /flask/flaskapp
+COPY flaskapp /flask/flaskapp
 
 ENV FLASK_APP app.py
 ENV FLASK_RUN_PORT 5000

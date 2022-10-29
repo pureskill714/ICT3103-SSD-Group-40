@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:1.4
 FROM mcr.microsoft.com/mssql/server:2019-latest
-
 ENV ACCEPT_EULA Y
-
 WORKDIR /db/config
 COPY . /db/config
 

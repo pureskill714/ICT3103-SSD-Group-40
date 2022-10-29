@@ -12,8 +12,8 @@ services:
       - password.env
 
 
-  flaskapp:
-    build: flaskapp
+  app:
+    build: app
     restart: always
     expose:
       - 5000
