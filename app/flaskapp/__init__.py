@@ -18,14 +18,14 @@ def create_app(test_config=None):
         # load the test config if passed in
         app.config.update(test_config)
 
-    from app.flaskapp.main import login_manager
+    from .main import login_manager
     login_manager.init_app(app)
 
     # against attacks such as Cross site request forgery (CSRF)
-    from app.flaskapp.main import bcrypt
+    from .main import bcrypt
     bcrypt.init_app(app)
 
-    from app.flaskapp.main import csrf
+    from .main import csrf
     csrf.init_app(app)  # globally enable csrf protection within the application
 
     if test_config is None:
@@ -35,7 +35,6 @@ def create_app(test_config=None):
         # load the test config if passed in
         app.config.update(test_config)
 
-    from app.flaskapp import main
     app.register_blueprint(main.mainapp)
 
     return app
