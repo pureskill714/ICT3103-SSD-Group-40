@@ -36,12 +36,12 @@ pipeline {
 		success {
 			dependencyCheckPublisher pattern: 'dependency-check-report.xml'
 		}
-		always {
+		// always {
             // Archive Unit and integration test results, if any
             // junit allowEmptyResults: true,
             //        testResults: '**/target/surefire-reports/TEST-*.xml, **/target/failsafe-reports/*.xml'
             // mailIfStatusChanged env.EMAIL_RECIPIENTS
-        }
+        // }
 
 	}
 }
