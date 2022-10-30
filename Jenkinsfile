@@ -23,8 +23,6 @@ pipeline {
 //                sh 'docker run --name $CONTAINER_NAME $DOCKER_HUB_REPO /bin/bash -c "pytest test.py && flake8"'
 	       sh 'docker network inspect frontnet >/dev/null 2>&1 || docker network create --driver bridge frontnet'
                sh 'docker network inspect backnet >/dev/null 2>&1 || docker network create --driver bridge backnet'
-	       sh 'chmod +x db/entrypoint.sh'
-	       sh 'chmod +x db/configure-db.sh'
                sh 'docker compose up -d'
 	       sh 'docker exec $CONTAINER_NAME_FLASK coverage run -m pytest -v -s --junitxml=reports/result.xml'
 	       echo 'Copy result.xml into Jenkins container'
