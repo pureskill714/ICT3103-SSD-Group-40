@@ -8,5 +8,6 @@ HEALTHCHECK \
   CMD /opt/mssql-tools/bin/sqlcmd -S 127.0.0.1 -U sa -P ${MSSQL_SA_PASSWORD} -Q "SELECT 1" -b -o /dev/null
 
 EXPOSE 1433
-
+USER ROOT
+RUN chmod +x entrypoint.sh
 ENTRYPOINT ["./entrypoint.sh"]
