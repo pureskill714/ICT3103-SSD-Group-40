@@ -14,5 +14,4 @@
 .idea/**/dataSources.local.xml
 
 __pycache__/
-*.env
 .coverage
