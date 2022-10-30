@@ -6,12 +6,14 @@ services:
       - backnet
     expose:
       - 1433
+    ports:
+      - 1433:1433
     env_file:
       - password.env
 
 
-  app:
-    build: app
+  flask_app:
+    build: flask_app
     restart: always
     expose:
       - 5000

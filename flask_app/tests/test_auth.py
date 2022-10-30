@@ -1,6 +1,6 @@
 import pymssql
 import pytest
-from app import g, session
+from flask import g, session
 
 
 def test_register_csrf(app, client, app_ctx):
