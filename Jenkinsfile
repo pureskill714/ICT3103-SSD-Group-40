@@ -4,7 +4,7 @@ pipeline {
 	    stage('Build') {
            steps {
                echo 'Building..'
-               sh '/usr/local/bin/docker-compose build'
+               sh 'docker-compose build'
            }
        }
        stage('Test') {
@@ -13,7 +13,7 @@ pipeline {
 //                sh 'docker stop $CONTAINER_NAME || true'
 //                sh 'docker rm $CONTAINER_NAME || true'
 //                sh 'docker run --name $CONTAINER_NAME $DOCKER_HUB_REPO /bin/bash -c "pytest test.py && flake8"'
-               sh '/usr/local/bin/docker-compose --no-deps -d'
+               sh 'docker-compose --no-deps -d'
            }
        }
 
