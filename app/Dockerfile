@@ -2,8 +2,7 @@
 FROM python:3.10-bullseye
 
 WORKDIR /flask
-COPY requirements.txt /flask
-COPY application.py /flask
+COPY . /flask
 RUN apt-get update
 
 RUN --mount=type=cache,target=/root/.cache/pip \
