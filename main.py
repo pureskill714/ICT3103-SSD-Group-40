@@ -15,11 +15,11 @@ import pymssql
 import re
 import flask
 
-data1 = os.urandom(16)
+data1 = os.urandom(16) 
 secret = "secretcode"
 code = bytes(secret,"utf-8")
 data3 = base64.b64encode(code)
-seckey = data1 + data3
+seckey = data1 + data3 #Random 16bytes+base16
 
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
@@ -42,12 +42,12 @@ app.jinja_env.autoescape = True
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SAMESITE='Strict',
 )
 
 response = flask.Response()
 # We can set secure cookies in response
-response.set_cookie('key', 'value', secure=True, httponly=True, samesite='Lax')
+response.set_cookie('key', 'value', secure=True, httponly=True, samesite='Strict')
 
 # Handling the login validation for Customers
 login_manager = LoginManager()  # Allow our app and flask login to work together
