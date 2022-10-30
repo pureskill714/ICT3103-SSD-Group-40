@@ -23,7 +23,7 @@ data3 = base64.b64encode(code)
 seckey = data1 + data3 #Random 16bytes+base16
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
-app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
+app.config['SECRET_KEY'] = 'seckey'  # flask uses secret to secure session cookies and protect our webform
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
@@ -111,6 +111,8 @@ class StaffRegisterForm(FlaskForm):
     username = StringField(validators=[InputRequired(),
                                        Length(min=4, max=32)])
 
+    # For users to enter their contact number
+    contact = IntegerField(validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
 
@@ -141,8 +143,8 @@ class ApproveBooking(FlaskForm):
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    session.clear() # To ensure the session is cleared before passing
-    session.pop('username', None) # Remove session after return to home page 
+    #session.clear() # To ensure the session is cleared before passing
+    #session.pop('username', None) # Remove session after return to home page 
     resp = app.make_response(render_template('index.html'))
     resp.set_cookie('username', expires=0) # to set expiry time of cookie to 0 after user logout
     return resp
@@ -388,41 +390,39 @@ def pendingbookingtable():
     approve = ApproveBooking()
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
-    get_bookings = """SELECT Bookings2.booking_id, UserDetails.Firstname, UserDetails.Lastname, Bookings2.room_type, Bookings2.start_date, Bookings2.end_date,bookings2.booking_status
-                    FROM Bookings2, UserDetails
-                    WHERE bookings2.user_id = UserDetails.User_ID and bookings2.booking_status = 'Pending';"""
+    get_bookings = "SELECT * FROM get_pending_bookings"
     cursor.execute(get_bookings)
-    bookings = cursor.fetchall()
-
+    bookings = list(cursor.fetchall())
+    conn.close()
     return render_template('tables/pendingbookingtable.html', bookings=bookings, approve=approve)
-
 
 @app.route('/bookingtable', methods=['GET', 'POST'])
 def bookingtable():
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
-    get_bookings = """SELECT Bookings2.booking_id, UserDetails.Firstname, UserDetails.Lastname, Bookings2.room_type, Bookings2.start_date, Bookings2.end_date,bookings2.booking_status
-                    FROM Bookings2, UserDetails
-                    WHERE bookings2.user_id = UserDetails.User_ID;"""
-    cursor.execute(get_bookings)
+    User_UUID = 'DD542958-2979-4B20-99CE-615683E7027A'
+    cursor.execute("get_my_bookings  %s", User_UUID)
     bookings = cursor.fetchall()
-
+    conn.close()
     return render_template('tables/bookingtable.html', bookings=bookings)
 
-
-@app.route('/pendingbookingapprove/<int:id>', methods=['GET', 'POST'])
+@app.route('/pendingbookingapprove/<string:id>', methods=['GET', 'POST'])
 def pendingBookingApprove(id):
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
-    cursor.execute("""
-       UPDATE Bookings2
-       SET booking_status = %s
-       WHERE booking_id = %d
-    """, ("Approved", id))
+    cursor.execute("EXEC approve_bookings %s", id)
     conn.commit()
     conn.close()
     return render_template('bookings/bookingapproved.html')
 
+@app.route('/approvedbookingtable', methods=['GET', 'POST'])
+def approvedbookingtable():
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM get_approved_bookings")
+    bookings = cursor.fetchall()
+    conn.close()
+    return render_template('tables/approvedbookingtable.html', bookings=bookings)
 
 @app.route('/staffupdatesearch', methods=['GET', 'POST'])
 def staffUpdateSearch(): 
