@@ -10,4 +10,5 @@ HEALTHCHECK \
 EXPOSE 1433
 USER root
 RUN chmod +x entrypoint.sh
+RUN chmod +x configure-db.sh
 ENTRYPOINT ["./entrypoint.sh"]
