@@ -1,5 +1,13 @@
 pipeline {
 	agent any
+	environment {
+        DOCKER_HUB_REPO = "talha1995/test"
+        CONTAINER_NAME_FLASK = "3x03_docker-flask_app-1"
+	CONTAINER_NAME_DB = "3x03_docker-db-1"
+	IMAGE_NAME_FLASK = "3x03_docker-flask_app"
+	IMAGE_NAME_DB = "3x03_docker-db"
+    	}
+
 	stages {
 	    stage('Build') {
            steps {
@@ -18,17 +26,17 @@ pipeline {
 	       sh 'chmod +x db/entrypoint.sh'
 	       sh 'chmod +x db/configure-db.sh'
                sh 'docker compose up -d'
-	       sh 'docker exec ict3103-ssd-group-40-flask_app-1 coverage run -m pytest -v -s --junitxml=reports/result.xml'
+	       sh 'docker exec $CONTAINER_NAME_FLASK coverage run -m pytest -v -s --junitxml=reports/result.xml'
 	       echo 'Copy result.xml into Jenkins container'
 	       sh 'rm -rf reports; mkdir reports'
-               sh 'docker cp ict3103-ssd-group-40-flask_app-1:/flask/reports/result.xml reports/'
+               sh 'docker cp $CONTAINER_NAME_FLASK:/flask/reports/result.xml reports/'
 	       echo "Cleanup"
-	       sh 'docker stop ict3103-ssd-group-40-flask_app-1'
-	       sh 'docker stop ict3103-ssd-group-40-db-1'
-	       sh 'docker rm ict3103-ssd-group-40-flask_app-1'
-	       sh 'docker rm ict3103-ssd-group-40-db-1'
-	       sh 'docker rmi ict3103-ssd-group-40-flask_app'
-	       sh 'docker rmi ict3103-ssd-group-40-db'
+	       sh 'docker stop $CONTAINER_NAME_FLASK'
+	       sh 'docker stop $CONTAINER_NAME_DB'
+	       sh 'docker rm $CONTAINER_NAME_FLASK'
+	       sh 'docker rm $CONTAINER_NAME_DB'
+	       sh 'docker rmi $CONTAINER_NAME_FLASK'
+	       sh 'docker rmi $CONTAINER_NAME_DB'
            }
        }
 
