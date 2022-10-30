@@ -33,8 +33,8 @@ pipeline {
 	       sh 'docker stop $CONTAINER_NAME_DB'
 	       sh 'docker rm $CONTAINER_NAME_FLASK'
 	       sh 'docker rm $CONTAINER_NAME_DB'
-	       sh 'docker rmi $CONTAINER_NAME_FLASK'
-	       sh 'docker rmi $CONTAINER_NAME_DB'
+	       sh 'docker rmi $IMAGE_NAME_FLASK'
+	       sh 'docker rmi $IMAGE_NAME_DB'
            }
        }
 
