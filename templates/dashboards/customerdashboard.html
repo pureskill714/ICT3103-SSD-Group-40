@@ -1,14 +1,72 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Designed by:LjoveX
+         It is 100% free to use-->
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Dashboard</title>
+    <meta name="description" content="Dobro dosli u najbolji kafic na svetu">
+    <meta name="keywords" content="Kafic">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
+    <link rel="stylesheet" href="static/css/style.css">
+    <title>Logged In</title>
 </head>
 <body>
-<h1>Hello! You are logged in </h1>
-<a href= "{{url_for('logout')}}">Press here to logout</a><br>
+    <header>
+        <nav id="navbar">
+        <div class="container">
+                <h1 class="logo">The Cozy Inn Hotel</h1>
+                <ul>
+                    <li><a href="{{url_for('customerdashboard')}}">Home</a></li>
+                    <li><a href="{{url_for('booking')}}">Book Room</a></li>
+                    <li><a href="{{url_for('ViewReservation')}}">View My Reservation</a></li>
+                    <li><a href="{{url_for('logout')}}">Cancel Bookings</a></li>
+                    <li><a href="{{url_for('logout')}}">Log Out</a></li>
+                </ul>
+              </div>
+            </nav>
+
+         <div id="showcase">
+           <div class="container">
+               <div class="showcase-content">
+                   <h1>Welcome! You are logged In! {{username}}</h1>
+                   <h1><span class="text-primary">Enjoy</span> your stay</h1>
+                   <p class="lead">The Cozy Inn welcomes you to have a fantastic time here</p>
+                   <a class="btn" href="about.html">About our hotel</a>
+               </div>
+           </div>
+         </div>
+    </header>
+    <section id="home-info" class="bg-dark">
+        <div class="info-img"></div>
+        <div class="info-content">
+          <h2><span class="text-primary">History</span> of out Hotel</h2>
+          <p>
+              Founded in 2010, The Cozy Inn is the built with hospitality and affordability in mind,
+              making it one of the best affordable 5 star hotels in the country
+          </p>
+          <a href="about.html" class="btn btn-light">Read More</a>
+        </div>
+      </section>
+       <section id="features">
+           <div class="box bg-light">
+            <i class="fas fa-hotel fa-3x"></i>
+               <h3>Great Location</h3>
+               <p>Many restauraunts,parks and sightseeing locations are very near the Cozy Inn.</p>
+           </div>
+           <div class="box bg-primary">
+            <i class="fas fa-utensils fa-3x"></i>
+            <h3>Free Meals</h3>
+            <p>Free breakfast and lunch every day here at the Cozy Inn with a buffet style serving.</p>
+           </div>
+           <div class="box bg-light">
+            <i class="fas fa-dumbbell fa-3x"></i>
+            <h3>Gym</h3>
+            <p>Our gym comes equipped with all the best and high quality equipments for your body building needs.</p>
+           </div>
+       </section>
+       <footer id="main-footer">
+       </footer>
 </body>
 </html>
