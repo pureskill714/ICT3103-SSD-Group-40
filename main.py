@@ -1,6 +1,6 @@
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm, RecaptchaField
@@ -11,16 +11,32 @@ from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
 import pymssql
 import datetime
-from datetime import date
+from datetime import date, timedelta
+
+import os
+import base64
+
+data1 = os.urandom(16) 
+secret = "secretcode"
+code = bytes(secret,"utf-8")
+data3 = base64.b64encode(code)
+seckey = data1 + data3 #Random 16bytes+base16
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
 
 csrf = CSRFProtect(app)  # globally enable csrf protection within the application
+
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Strict',
+)
 
 # Handling the login validation for Customers
 login_manager = LoginManager()  # Allow our app and flask login to work together
@@ -122,9 +138,14 @@ class ApproveBooking(FlaskForm):
 
 
 # App routes help to redirect to different pages of the website
+# App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    return render_template('index.html')
+    session.clear() # To ensure the session is cleared before passing
+    session.pop('username', None) # Remove session after return to home page 
+    resp = app.make_response(render_template('index.html'))
+    resp.set_cookie('username', expires=0) # to set expiry time of cookie to 0 after user logout
+    return resp
 
 
 def encode(input):
@@ -140,10 +161,11 @@ def encode(input):
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-
+        session.clear() # To ensure the session is cleared before passing
+        
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
         # Prevent users from entering non-ascii encoded characters
@@ -180,14 +202,20 @@ def login():
             
             user_email = res[0]
             role_ID = res[1]
+            UUID = res[2]
         except:
             # Login failed, so no user email or role ID returned to res
             user_email = None
             role_ID = None
+            UUID = None
+        
+
         
         conn.commit()
         conn.close()
         if user_email is not None: #Login was successful
+            session.permanent = True
+            session['username'] = username
             #Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             if role_ID == 1:
                 return redirect(url_for('customerdashboard'))
@@ -204,8 +232,11 @@ def login():
 @app.route("/customerdashboard", methods=['GET', 'POST'])
 #@login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
-    return render_template('dashboards/customerdashboard.html')
-
+    if "username" in session:
+        username = session["username"]
+        return render_template('dashboards/customerdashboard.html', username=session['username'])
+    else:
+        return redirect(url_for('timeout'))
 
 @app.route("/staffdashboard", methods=['GET', 'POST'])
 #@login_required  # ensure is logged then, only then can access the dashboard
@@ -223,6 +254,8 @@ def managerdashboard():
 @login_required  # ensure is logged then, only then can log out
 def logout():
     logout_user()  # log the user out
+    session.clear() # Ensure session is cleared
+    session.pop('username', None) # Remove session after user has logout
     return redirect(url_for('login'))  # redirect user back to login page
 
 
@@ -239,7 +272,7 @@ def register():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
 
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -247,6 +280,7 @@ def register():
         email = encode(form.email.data)
         fname = encode(form.firstname.data)
         lname = encode(form.lastname.data)
+        contact = form.contact.data
 
         # Verifies that there are no issues with encoding
         if passwordInput is None or username is None or email is None or fname is None or lname is None:
@@ -263,8 +297,8 @@ def register():
 
         # Execute statement for running the stored procedure
         # Raw inputs are formatted and parameterized into a prepared statement
-        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s",
-                       (username, hashed_password, email, fname, lname))
+        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s, @contact = %d",
+                       (username, hashed_password, email, fname, lname, contact))
         res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
@@ -290,7 +324,7 @@ def staffregister():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
 
         # Run encode/decode check functions
         username = encode(form.username.data)
@@ -329,7 +363,7 @@ def staffregister():
 
 @app.route('/customertable')
 def customertable():
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
@@ -340,7 +374,7 @@ def customertable():
 
 @app.route('/stafftable')
 def stafftable():
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
@@ -352,7 +386,7 @@ def stafftable():
 @app.route('/pendingbookingtable', methods=['GET', 'POST'])
 def pendingbookingtable():
     approve = ApproveBooking()
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     get_bookings = """SELECT Bookings2.booking_id, UserDetails.Firstname, UserDetails.Lastname, Bookings2.room_type, Bookings2.start_date, Bookings2.end_date,bookings2.booking_status
                     FROM Bookings2, UserDetails
@@ -365,7 +399,7 @@ def pendingbookingtable():
 
 @app.route('/bookingtable', methods=['GET', 'POST'])
 def bookingtable():
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     get_bookings = """SELECT Bookings2.booking_id, UserDetails.Firstname, UserDetails.Lastname, Bookings2.room_type, Bookings2.start_date, Bookings2.end_date,bookings2.booking_status
                     FROM Bookings2, UserDetails
@@ -378,7 +412,7 @@ def bookingtable():
 
 @app.route('/pendingbookingapprove/<int:id>', methods=['GET', 'POST'])
 def pendingBookingApprove(id):
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("""
        UPDATE Bookings2
@@ -399,7 +433,7 @@ def staffUpdateSearch():
 def staffUpdateValue():
     username = request.form['username']
 
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     res = list(cursor.fetchone())
@@ -425,11 +459,11 @@ def staffUpdateSubmit():
     contact = request.form['contact']
     print(username, firstname, lastname, email, address, DOB, country, city, contact)
 
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d", (username, email, firstname, lastname, address, DOB, country, city, contact))
-    conn.commit()
 
+    conn.commit()
     conn.close()
     return render_template('staffCRUD/staff_update_sucess.html')
 
@@ -453,6 +487,11 @@ def staffDeleteSearch():
 @app.route('/staffdeletesubmit', methods=['GET', 'POST'])
 def staffDeleteSubmit():
     return render_template('staffCRUD/staff_update_sucess.html')
+
+@app.route("/timeout")
+def timeout():
+    session.clear() # Ensure session is cleared
+    return render_template('timeout.html')
 
 # 400 - To handle Bad request
 @app.route('/400')
@@ -515,21 +554,34 @@ def booking():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
-        insert_stmt = (
-            "INSERT INTO Bookings2 (user_id, room_type, start_date, end_date,booking_status)"
-            "VALUES (%d,%s, %s, %s, %s)"
-        )
-        data = (1, form.room_type.data, form.start_date.data, form.end_date.data, "Pending")
+        room_type = form.room_type.data
+        start_date = form.start_date.data
+        end_date = form.end_date.data
+
+        if room_type == "Standard Twin":
+            room_type = 1
+        elif room_type == "Standard Queen":
+            room_type = 2
+        elif room_type == "Deluxe":
+            room_type = 3
+        else:
+            room_type = 1
 
         # Send the data to database
-        cursor.execute(insert_stmt, data)
+        cursor.execute("EXEC setup_booking 1, %d, %s, %s, %s ", (room_type, "", start_date, end_date))
 
+        res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
-        return render_template('bookings/bookingsuccess.html')
+        if res == 1: #Booking pending approval
+            return render_template('bookings/bookingsuccess.html')
+        elif res == 2:
+            flash("Booking failed. No rooms of this type available during date range. Or input error detected")
+        else:
+            flash("Booking failed. No rooms of this type available during date range. Or input error detected")
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
@@ -537,11 +589,11 @@ def booking():
 @app.route("/viewreservation", methods=['GET', 'POST'])
 # @login_required
 def ViewReservation():
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
 
     # get the booking details of current logged in user
-    cursor.execute('SELECT room_type,start_date,end_date,booking_status from Bookings2 where user_id = %d', 1)
+    cursor.execute('SELECT room_ID, start_date, end_date, booking_status from Bookings where user_id = %d', 1)
     bookings_made = cursor.fetchall()
 
     return render_template('bookings/viewreservation.html', bookings=bookings_made)
