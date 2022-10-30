@@ -488,19 +488,10 @@ def ViewReservation():
     cursor = conn.cursor()
 
     # get the booking details of current logged in user
-    data = ()
-    cursor.execute('SELECT room_type,start_date,end_date from Bookings2 where user_id = %d', session['userid'])
-    for row in cursor:
-        data = row
+    cursor.execute('SELECT room_type,start_date,end_date,booking_status from Bookings2 where user_id = %d', 1)
+    bookings_made = cursor.fetchall()
 
-    if len(data) != 0:
-        room_type = data[0]
-        start_date = data[1]
-        end_date = data[2]
-    else:
-        return render_template('bookings/noreservation.html')
-
-    return render_template('bookings/reservation.html', room_type=room_type, start_date=start_date, end_date=end_date)
+    return render_template('bookings/viewreservation.html', bookings=bookings_made)
 
 
 if __name__ == '__main__':
