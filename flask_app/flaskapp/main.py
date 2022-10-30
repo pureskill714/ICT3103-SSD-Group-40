@@ -115,7 +115,7 @@ def login():
         
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect(server="localhost", user='sa', password=sql_pass, database="3203")
+        conn = pymssql.connect(server="db", user='sa', password=sql_pass, database="3203")
         cursor = conn.cursor()
 
         #Prevent users from entering non-ascii encoded characters
@@ -207,7 +207,7 @@ def register():
     if form.validate_on_submit():
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect(server='localhost', user='sa', password=sql_pass, database="3203")
+        conn = pymssql.connect(server='db', user='sa', password=sql_pass, database="3203")
 
         #Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -256,7 +256,7 @@ def staffregister():
     if form.validate_on_submit():
         #Creating connections individually to avoid open connections
         #CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("localhost", 'sa', sql_pass, "3203")
+        conn = pymssql.connect("db", 'sa', sql_pass, "3203")
 
         #Run encode/decode check functions
         username = encode(form.username.data)
