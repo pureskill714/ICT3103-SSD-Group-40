@@ -6,8 +6,6 @@ services:
       - backnet
     expose:
       - 1433
-    ports:
-      - 1433:1433
     env_file:
       - password.env
 
@@ -17,8 +15,6 @@ services:
     restart: always
     expose:
       - 5000
-    ports:
-      - 80:5000
     networks:
       - backnet
       - frontnet
