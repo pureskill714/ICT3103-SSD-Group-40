@@ -11,9 +11,9 @@ def test_register_csrf(app, client, app_ctx):
                                               'password_confirm': '12345678'})
     assert response.headers["Location"] == "/registersuccess"
 
-    conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
+    conn = pymssql.connect(server="db", user='sa', password='9WoH697&p2oM', database="3203")
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM Users WHERE Username=%s', 'test_user14')
+    cursor.execute('SELECT * FROM Users WHERE Username=%s', 'test_user15')
     assert cursor.fetchone() is not None
     conn.close()
     response = client.post("/register", data={"csrf_token": g.csrf_token, 'firstname': "test_firstname",
