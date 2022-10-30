@@ -16,6 +16,17 @@ pipeline {
 	       sh 'docker network inspect frontnet >/dev/null 2>&1 || docker network create --driver bridge frontnet'
                sh 'docker network inspect backnet >/dev/null 2>&1 || docker network create --driver bridge backnet'
                sh 'docker compose up -d'
+	       sh 'docker exec ict3103-ssd-group-40-flask_app-1 coverage run -m pytest -v -s --junitxml=reports/result.xml'
+	       echo 'Copy result.xml into Jenkins container'
+	       sh 'rm -rf reports; mkdir reports'
+               sh 'docker cp ict3103-ssd-group-40-flask_app-1:/flask/reports/result.xml reports/
+	       echo "Cleanup"
+	       sh 'docker stop ict3103-ssd-group-40-flask_app-1'
+	       sh 'docker stop ict3103-ssd-group-40-db-1'
+	       sh 'docker rm ict3103-ssd-group-40-flask_app-1'
+	       sh 'docker rm ict3103-ssd-group-40-db-1'
+	       sh 'docker rmi ict3103-ssd-group-40-flask_app'
+	       sh 'docker rmi ict3103-ssd-group-40-db'
            }
        }
 
@@ -38,12 +49,12 @@ pipeline {
 		success {
 			dependencyCheckPublisher pattern: 'dependency-check-report.xml'
 		}
-		// always {
+		 always {
             // Archive Unit and integration test results, if any
-            // junit allowEmptyResults: true,
-            //        testResults: '**/target/surefire-reports/TEST-*.xml, **/target/failsafe-reports/*.xml'
+             junit allowEmptyResults: true,
+                    testResults: 'reports/*.xml'
             // mailIfStatusChanged env.EMAIL_RECIPIENTS
-        // }
+         }
 
 	}
 }
