@@ -1,0 +1,17 @@
+<h1>Update Staff Details</h1>
+
+<form action="{{url_for('staffUpdateSubmit')}}" method = "POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <input type="hidden" name="username", value="{{username}}"/>
+  <p>First Name<input name="firstname" type = "text" firstname = "firstname" value="{{details[0]}}"/></p>
+  <p>Last Name<input name="lastname" type = "text" lastame = "lastname"  value="{{details[1]}}"/></p>
+  <p>Email<input name="email" email="email" type = "text" email = "email" value="{{details[2]}}"/></p>
+  <p>Address<input name="address" type = "text" address = "address" value="{{details[3]}}"/></p>
+  <p>Date of Birth<input name="DOB" type = "date" DOB = "DOB" value="{{details[4]}}"/></p>
+  <p>Country <input name="country" type = "text" country = "country" value="{{details[5]}}"/></p>
+  <p>City <input name="city" type = "text" city = "city" value="{{details[6]}}"/></p>
+  <p>Contact<input name="contact" type = "integer" contact = "contact" value="{{details[7]}}"/></p>
+  
+  <p>Updating details for employee: {{username}}</p>
+  <p><input type = "submit" value = "Submit" /></p>
+</form>

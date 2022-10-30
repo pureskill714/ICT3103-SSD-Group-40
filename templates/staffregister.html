@@ -61,7 +61,7 @@
                 <ul>
                     <li><a href="{{url_for('managerdashboard')}}">Main Dashboard</a></li>
                     <li><a href="{{url_for('staffregister')}}">Create Staff Account</a></li>
-                    <li><a href="{{url_for('login')}}">Update Staff</a></li>
+                    <li><a href="{{url_for('staffUpdateSearch')}}">Update Staff</a></li>
                     <li><a href="{{url_for('login')}}">Delete Staff</a></li>
                     <li><a href="{{url_for('stafftable')}}">View Staffs</a></li>
                 </ul>
@@ -82,14 +82,6 @@
               {% endfor %}
            {% endif %}
         {% endwith %}
-  </center>
-  <center>
-  {% if form.password.errors %}
-                {% for error in form.password.errors %}
-                {{ error }}
-                {% endfor %}
-
-        {% endif %}
   </center>
 
     <div class="container">
@@ -124,36 +116,13 @@
             <span id="username" class="text-danger font-weight-regular"> </span>
           </div>
 
-			<!-- Inputting password -->
-          <div class="form-group">
-            <label class="font-weight-regular"> Password </label><br>
-            {{form.password}}
-            <span id="passwords" class="text-danger font-weight-regular">
-            </span>
-          </div>
-
-          <!-- Inputting password confirm -->
-          <div class="form-group">
-            <label class="font-weight-regular"> Confirm Password </label><br>
-              {{form.password_confirm}}
-            <span id="confrmpass" class="text-danger font-weight-regular">
-            </span>
-          </div>
-
 		   <!-- Inputting contact number -->
           <div class="form-group">
             <label class="font-weight-regular"> Mobile Number </label><br>
             {{form.contact}}
             <span id="mobileno" class="text-danger font-weight-regular"> </span>
           </div>
-
-          <!-- Inputting emp_no -->
-          <div class="form-group">
-            <label class="font-weight-regular"> Employee Number </label><br>
-            {{form.emp_no}}
-            <span id="empno" class="text-danger font-weight-regular"> </span>
-          </div>
-
+            
           <!-- Submit button -->
          {{form.submit}}
           <input
