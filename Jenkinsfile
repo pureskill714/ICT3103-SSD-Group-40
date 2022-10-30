@@ -19,7 +19,7 @@ pipeline {
 	       sh 'docker exec ict3103-ssd-group-40-flask_app-1 coverage run -m pytest -v -s --junitxml=reports/result.xml'
 	       echo 'Copy result.xml into Jenkins container'
 	       sh 'rm -rf reports; mkdir reports'
-               sh 'docker cp ict3103-ssd-group-40-flask_app-1:/flask/reports/result.xml reports/
+               sh 'docker cp ict3103-ssd-group-40-flask_app-1:/flask/reports/result.xml reports/'
 	       echo "Cleanup"
 	       sh 'docker stop ict3103-ssd-group-40-flask_app-1'
 	       sh 'docker stop ict3103-ssd-group-40-db-1'
