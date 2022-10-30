@@ -10,8 +10,8 @@ services:
       - password.env
 
 
-  app:
-    build: app
+  flask_app:
+    build: flask_app
     restart: always
     expose:
       - 5000
