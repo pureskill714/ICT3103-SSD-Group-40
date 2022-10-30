@@ -6,6 +6,8 @@ services:
       - backnet
     expose:
       - 1433
+    ports:
+      - 1433:1433
     env_file:
       - password.env
 
