@@ -60,6 +60,9 @@ class RegisterForm(FlaskForm):
     password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
                                                                            validators.Length(min=8, max=32)])
 
+    # For users to enter their contact number
+    contact = IntegerField(validators=[InputRequired()])
+
     submit = SubmitField("Register")  # Register button once they are done
 
 
@@ -91,6 +94,7 @@ class StaffRegisterForm(FlaskForm):
     # For users to choose a username
     username = StringField(validators=[InputRequired(),
                                        Length(min=4, max=32)])
+
 
     submit = SubmitField("Register")  # Register button once they are done
 
@@ -325,7 +329,7 @@ def staffregister():
 
 @app.route('/customertable')
 def customertable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
@@ -336,7 +340,7 @@ def customertable():
 
 @app.route('/stafftable')
 def stafftable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
@@ -395,7 +399,7 @@ def staffUpdateSearch():
 def staffUpdateValue():
     username = request.form['username']
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     res = list(cursor.fetchone())
@@ -421,7 +425,7 @@ def staffUpdateSubmit():
     contact = request.form['contact']
     print(username, firstname, lastname, email, address, DOB, country, city, contact)
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d", (username, email, firstname, lastname, address, DOB, country, city, contact))
     conn.commit()
