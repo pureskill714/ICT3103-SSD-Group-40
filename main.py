@@ -19,7 +19,7 @@ data1 = os.urandom(16)
 secret = "secretcode"
 code = bytes(secret,"utf-8")
 data3 = base64.b64encode(code)
-seckey = data1 + data3 #Random 16bytes+base16
+seckey = data1 + data3 #Random 16bytes+base64
 
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
@@ -78,9 +78,7 @@ def login():
     form = LoginForm()
     # check if the user exists in the database
     if form.validate_on_submit():
-        session.clear() # To ensure the session is cleared before passing
-        session.permanent = True
-        session['username'] = form.username.data
+
         hashed_password = bcrypt.generate_password_hash(form.password.data)
 
         # Creating connections individually to avoid open connections
@@ -113,6 +111,9 @@ def login():
 
         if user_email is not None:  # Login was successful
             # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
+            session.clear() # To ensure the session is cleared before passing
+            session.permanent = True
+            session['username'] = form.username.data
             return redirect(url_for('customerdashboard'))
         else:
             flash("Username or Password incorrect. Please try again")
@@ -283,7 +284,7 @@ def handle_csrf_error(error):
 # @login_required
 def booking():
     form = BookingForm()
-    # If session is not available will redirect to timeout page else continue validate 
+    # If session is not available will redirect to timeout page else continue booking 
     if 'username' not in session:
         return redirect(url_for('timeout'))
     else:    
@@ -344,29 +345,33 @@ def reservation():
 
 @app.route("/cancelbooking", methods=['GET', 'POST'])
 def cancelbooking():
-    cancel = CancelReservation()
-    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
-    cursor = conn.cursor()
+        # If session is not available will redirect to timeout page else continue cancel booking 
+    if 'username' not in session:
+        return redirect(url_for('timeout'))
+    else: 
+        cancel = CancelReservation()
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
+        cursor = conn.cursor()
 
-    # get the booking details of current logged in user
-    data = ()
-    cursor.execute('SELECT room_type,start_date,end_date from Bookings2 where user_id = %d', session['userid'])
-    for row in cursor:
-        data = row
+        # get the booking details of current logged in user
+        data = ()
+        cursor.execute('SELECT room_type,start_date,end_date from Bookings2 where user_id = %d', session['userid'])
+        for row in cursor:
+            data = row
 
-    if len(data) != 0:
-        room_type = data[0]
-        start_date = data[1]
-        end_date = data[2]
-    else:
-        return render_template('bookings/noreservation.html')
+        if len(data) != 0:
+            room_type = data[0]
+            start_date = data[1]
+            end_date = data[2]
+        else:
+            return render_template('bookings/noreservation.html')
 
-    # when user press the cancel booking button
-    if request.method == 'POST':
-        cursor.execute('DELETE FROM Bookings2 WHERE user_id = %d', session['userid'])
-        conn.commit()
-        conn.close()
-        return render_template('bookings/cancelbookingsuccess.html')
+        # when user press the cancel booking button
+        if request.method == 'POST':
+            cursor.execute('DELETE FROM Bookings2 WHERE user_id = %d', session['userid'])
+            conn.commit()
+            conn.close()
+            return render_template('bookings/cancelbookingsuccess.html')
 
     return render_template('bookings/cancelbooking.html', room_type=room_type, start_date=start_date, end_date=end_date,
                            cancel=cancel)
