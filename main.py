@@ -491,6 +491,7 @@ def register():
         email = encode(form.email.data)
         fname = encode(form.firstname.data)
         lname = encode(form.lastname.data)
+        access = ACCESS['customer']
         # contact = form.contact.data
 
         # Verifies that there are no issues with encoding
@@ -508,8 +509,8 @@ def register():
 
         # Execute statement for running the stored procedure
         # Raw inputs are formatted and parameterized into a prepared statement
-        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s",
-                       (username, hashed_password, email, fname, lname))
+        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s, @access = %d",
+                       (username, hashed_password, email, fname, lname, access))
         res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
@@ -542,6 +543,7 @@ def staffregister():
         email = encode(form.email.data)
         fname = encode(form.firstname.data)
         lname = encode(form.lastname.data)
+        access = ACCESS['staff']
         # contact = encode(form.contact.data)
 
         if username is None or email is None or fname is None or lname is None:
@@ -549,8 +551,8 @@ def staffregister():
             return render_template('register.html', form=form)
 
         cursor = conn.cursor()
-        cursor.execute("EXEC register_staff @username = %s, @email = %s, @fname = %s, @lname = %s",
-                       (username, email, fname, lname))
+        cursor.execute("EXEC register_staff @username = %s, @email = %s, @fname = %s, @lname = %s, @access = %d",
+                       (username, email, fname, lname, access))
         res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
