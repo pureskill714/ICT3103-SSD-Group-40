@@ -152,9 +152,15 @@ body{
             </div>
         </form>
 
-      <ui>
-        <li style="color:red;">{{error}}</li>
-      </ui>
+      <center>
+  {% with messages = get_flashed_messages() %}
+           {% if messages %}
+              {% for message in messages %}
+                 {{ message }}
+              {% endfor %}
+           {% endif %}
+        {% endwith %}
+  </center>
     </div>
 
 
