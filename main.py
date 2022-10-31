@@ -8,7 +8,7 @@ from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql A
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, \
-    DateField
+    DateField, TelField
 from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired, EqualTo
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
@@ -16,7 +16,6 @@ import pymssql
 import datetime
 from datetime import date, timedelta
 from itsdangerous import URLSafeTimedSerializer
-from util import create_message, send_message, service
 
 # import library for OTP
 import math, random
@@ -157,14 +156,14 @@ def load_user_customer(user_id):
 
 class RegisterForm(FlaskForm):
     # For users to choose a first name
-    firstname = StringField(validators=[InputRequired(),
+    firstname = StringField('First Name', validators=[InputRequired(),
                                         Length(min=2, max=64)])
     # For users to choose a last name
-    lastname = StringField(validators=[InputRequired(),
+    lastname = StringField('Last Name', validators=[InputRequired(),
                                        Length(min=2, max=64)])
 
     # For users to input their email
-    email = EmailField(validators=[InputRequired("Please enter email address"),
+    email = EmailField('Email', validators=[InputRequired("Please enter email address"),
                                    Length(min=4, max=254), Email()])
 
     # For users to choose a username
@@ -181,7 +180,7 @@ class RegisterForm(FlaskForm):
                                                                            validators.Length(min=8, max=32)])
 
     # For users to enter their contact number
-    # contact = IntegerField(validators=[InputRequired()])
+    contact = IntegerField('Contact Number', validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
 
@@ -249,9 +248,10 @@ class forgotPasswordEmailForm(FlaskForm):
     submit = SubmitField('Reset password')
 
 class newPasswordForm(FlaskForm):
-    password = PasswordField('New Password', Length(min=8, max=64), validators=[DataRequired()])
-    password2 = PasswordField('Confirm your new Password', Length(min=8, max=64),
-                              validators=[DataRequired(), EqualTo('password', message='Passwords must match')])
+    password = PasswordField('New Password', validators=[DataRequired(), Length(min=8, max=64)])
+    password2 = PasswordField('Confirm your new Password',
+                              validators=[DataRequired(), Length(min=8, max=64),
+                                          EqualTo('password', message='Passwords must match')])
 
 class ApproveBooking(FlaskForm):
     approveButton = SubmitField('Approve Booking')
@@ -262,7 +262,7 @@ class ApproveBooking(FlaskForm):
 @app.route("/", methods=['GET', 'POST'])
 def home():
     #session.clear() # To ensure the session is cleared before passing
-    #session.pop('username', None) # Remove session after return to home page 
+    #session.pop('username', None) # Remove session after return to home page
     resp = app.make_response(render_template('index.html'))
     resp.set_cookie('username', expires=0)  # to set expiry time of cookie to 0 after user logout
     return resp
@@ -419,13 +419,12 @@ def forgetPassword():
         cursor.execute('SELECT * FROM Users WHERE Email=%s', form.email.data)
         user_email = cursor.fetchone()
         conn.close()
-        flash(f'Password reset instructions sent to {form.email.data}')
+        flash(f'Password reset instructions sent to {form.email.data}', 'success')
         if user_email is not None:
+            from util import create_message, send_message, service
 
             subject = "Password reset requested"
 
-            # Here we use the URLSafeTimedSerializer we created in `util` at the
-            # beginning of the chapter
             token = ts.dumps(user_email[5], salt='recover-key')
 
             recover_url = url_for(
@@ -439,7 +438,7 @@ def forgetPassword():
 
             message = create_message('noreply.cozyinn@gmail.com',user_email[5],subject,html)
             send_message(service=service, user_id='me', message=message)
-        return redirect(url_for('forgetPassword'))
+        # return redirect(url_for('forgetPassword'))
 
     return render_template('forgetpassword.html', form=form)
 
@@ -449,7 +448,8 @@ def reset_with_token(token):
     try:
         email = ts.loads(token, salt="recover-key", max_age=360)
     except:
-        abort(404)
+        flash('The confirmation link is invalid or has expired.', 'danger')
+        return redirect(url_for('forgetPassword'))
 
     form = newPasswordForm()
 
@@ -464,6 +464,8 @@ def reset_with_token(token):
         #
         # db.session.add(user)
         # db.session.commit()
+        flash("Set new password successfully")
+        # flash('Set new password successfully', 'success')
 
         return redirect(url_for('login'))
 
@@ -490,7 +492,7 @@ def register():
         # Verifies that there are no issues with encoding
         if passwordInput is None or username is None or email is None or fname is None or lname is None:
             flash("Please check your user inputs again.")
-            return render_template('register.html', form=form)
+            return render_template('newRegister.html', form=form)
 
         hashed_password = bcrypt.generate_password_hash(passwordInput)
         cursor = conn.cursor()
@@ -519,7 +521,7 @@ def register():
             # Somehow the stored procedure did not run for whatever reason
             flash("Username or Email may already be in use. Please try again. ")
 
-    return render_template('register.html', form=form)
+    return render_template('newRegister.html', form=form)
 
 
 @app.route("/staffregister", methods=['GET', 'POST'])
