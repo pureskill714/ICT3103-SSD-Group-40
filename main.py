@@ -1,5 +1,5 @@
 # from google API part 1, must put future import at start
-from __future__ import print_function # not sure if can remove this
+from __future__ import print_function  # not sure if can remove this
 
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
@@ -40,18 +40,18 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
 # for logging with a confide to put in date and time before the message logging
 import logging
+
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-
-data1 = os.urandom(16) 
+data1 = os.urandom(16)
 secret = "secretcode"
-code = bytes(secret,"utf-8")
+code = bytes(secret, "utf-8")
 data3 = base64.b64encode(code)
-seckey = data1 + data3 #Random 16bytes+base16
+seckey = data1 + data3  # Random 16bytes+base16
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = seckey  # uses randomise secret key to secure session cookies and protect our webform
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) # To give session timeout if user idle
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
 # against attacks such as Cross site request forgery (CSRF)
@@ -177,7 +177,7 @@ class RegisterForm(FlaskForm):
                                                                            validators.Length(min=8, max=32)])
 
     # For users to enter their contact number
-    #contact = IntegerField(validators=[InputRequired()])
+    # contact = IntegerField(validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
 
@@ -194,8 +194,9 @@ class LoginForm(FlaskForm):
 
     submit = SubmitField("Login")
 
+
 class MfaForm(FlaskForm):
-    #For users to enter otp
+    # For users to enter otp
     mfa = StringField(validators=[InputRequired(), Length(min=6, max=6)])
 
 
@@ -214,7 +215,6 @@ class StaffRegisterForm(FlaskForm):
     # For users to choose a username
     username = StringField(validators=[InputRequired(),
                                        Length(min=4, max=32)])
-
 
     submit = SubmitField("Register")  # Register button once they are done
 
@@ -245,10 +245,10 @@ class ApproveBooking(FlaskForm):
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    session.clear() # To ensure the session is cleared before passing
-    session.pop('username', None) # Remove session after return to home page 
+    session.clear()  # To ensure the session is cleared before passing
+    session.pop('username', None)  # Remove session after return to home page
     resp = app.make_response(render_template('index.html'))
-    resp.set_cookie('username', expires=0) # to set expiry time of cookie to 0 after user logout
+    resp.set_cookie('username', expires=0)  # to set expiry time of cookie to 0 after user logout
     return resp
 
 
@@ -265,8 +265,8 @@ def encode(input):
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        session.clear() # To ensure the session is cleared before passing
-        
+        session.clear()  # To ensure the session is cleared before passing
+
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
         conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
@@ -288,8 +288,8 @@ def login():
         # Fetches original password hash of the user and compares the hash with the password provided using bcrypt
         cursor.execute('EXEC retrieve_password @username = %s', (username))
         passwordHash = cursor.fetchone()
-        
-        #Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
+
+        # Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
         try:
             passResult = bcrypt.check_password_hash(passwordHash[0], passwordInput)
         except:
@@ -299,11 +299,12 @@ def login():
 
         # res = cursor.callproc('login_user', (username, int(passResult), request.remote_addr, pymssql.output(str), pymssql.output(int),))
 
-        cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s", (username, int(passResult), request.remote_addr))
+        cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
+                       (username, int(passResult), request.remote_addr))
 
         try:
             res = cursor.fetchone()
-            
+
             user_email = res[0]
             role_ID = res[1]
             UUID = res[2]
@@ -312,24 +313,23 @@ def login():
             user_email = None
             role_ID = None
             UUID = None
-        
 
-        
         conn.commit()
         conn.close()
-        if user_email is not None: #Login was successful
+        if user_email is not None:  # Login was successful
             session.permanent = True
             session['username'] = username
 
             generated = generateOTP()
             # when session is created need declare variable here // session['generatedOTP'] = 'my_value'
+            session['generated'] = generated
             print(generated)
             print(user_email)
             gmail_send_message(generated, user_email)
             # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             return redirect(url_for('mfa'))
 
-            #Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
+            # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             if role_ID == 1:
                 return redirect(url_for('customerdashboard'))
             elif role_ID == 2:
@@ -352,7 +352,7 @@ def mfa():
         print(form.mfa.data)
         # print("MFA CHECKING")
 
-        if form.mfa.data == "123456":
+        if form.mfa.data == session['generated']:
             # print("MFA CHECKED")
             return redirect(url_for('customerdashboard'))
         else:
@@ -363,7 +363,7 @@ def mfa():
 
 
 @app.route("/customerdashboard", methods=['GET', 'POST'])
-#@login_required  # ensure is logged then, only then can access the dashboard
+# @login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
     if "username" in session:
         username = session["username"]
@@ -371,8 +371,9 @@ def customerdashboard():
     else:
         return redirect(url_for('timeout'))
 
+
 @app.route("/staffdashboard", methods=['GET', 'POST'])
-#@login_required  # ensure is logged then, only then can access the dashboard
+# @login_required  # ensure is logged then, only then can access the dashboard
 def staffdashboard():
     return render_template('dashboards/staffdashboard.html')
 
@@ -387,8 +388,8 @@ def managerdashboard():
 @login_required  # ensure is logged then, only then can log out
 def logout():
     logout_user()  # log the user out
-    session.clear() # Ensure session is cleared
-    session.pop('username', None) # Remove session after user has logout
+    session.clear()  # Ensure session is cleared
+    session.pop('username', None)  # Remove session after user has logout
     return redirect(url_for('login'))  # redirect user back to login page
 
 
@@ -413,7 +414,7 @@ def register():
         email = encode(form.email.data)
         fname = encode(form.firstname.data)
         lname = encode(form.lastname.data)
-        #contact = form.contact.data
+        # contact = form.contact.data
 
         # Verifies that there are no issues with encoding
         if passwordInput is None or username is None or email is None or fname is None or lname is None:
@@ -502,7 +503,7 @@ def customertable():
     res = cursor.fetchall()
 
     conn.close()
-    return render_template('tables/customertable.html', users = res)
+    return render_template('tables/customertable.html', users=res)
 
 
 @app.route('/stafftable')
@@ -511,9 +512,9 @@ def stafftable():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
-    
+
     conn.close()
-    return render_template('tables/stafftable.html', users = res)
+    return render_template('tables/stafftable.html', users=res)
 
 
 @app.route('/pendingbookingtable', methods=['GET', 'POST'])
@@ -558,7 +559,7 @@ def pendingBookingApprove(id):
 
 
 @app.route('/staffupdatesearch', methods=['GET', 'POST'])
-def staffUpdateSearch(): 
+def staffUpdateSearch():
     return render_template('staffCRUD/staff_update_search.html')
 
 
@@ -576,13 +577,13 @@ def staffUpdateValue():
     print(res)
     conn.close()
 
-    return render_template('staffCRUD/staff_update_value.html', details = res, username = username)
+    return render_template('staffCRUD/staff_update_value.html', details=res, username=username)
 
 
 @app.route('/staffupdatesubmit', methods=['GET', 'POST'])
 def staffUpdateSubmit():
     username = request.form['username']
-    firstname = request.form['firstname']    
+    firstname = request.form['firstname']
     lastname = request.form['lastname']
     email = request.form['email']
     address = request.form['address']
@@ -594,7 +595,8 @@ def staffUpdateSubmit():
 
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
-    cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d", (username, email, firstname, lastname, address, DOB, country, city, contact))
+    cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d",
+                   (username, email, firstname, lastname, address, DOB, country, city, contact))
 
     conn.commit()
     conn.close()
@@ -612,6 +614,7 @@ def registersuccess():
 def staffregistersucess():
     return render_template('staffregistersucess.html')
 
+
 @app.route('/staffdeletesearch', methods=['GET', 'POST'])
 def staffDeleteSearch():
     return render_template('staffCRUD/staff_delete_search.html')
@@ -621,10 +624,12 @@ def staffDeleteSearch():
 def staffDeleteSubmit():
     return render_template('staffCRUD/staff_update_sucess.html')
 
+
 @app.route("/timeout")
 def timeout():
-    session.clear() # Ensure session is cleared
+    session.clear()  # Ensure session is cleared
     return render_template('timeout.html')
+
 
 # 400 - To handle Bad request
 @app.route('/400')
@@ -709,7 +714,7 @@ def booking():
         res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
-        if res == 1: #Booking pending approval
+        if res == 1:  # Booking pending approval
             return render_template('bookings/bookingsuccess.html')
         elif res == 2:
             flash("Booking failed. No rooms of this type available during date range. Or input error detected")
