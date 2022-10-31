@@ -469,7 +469,7 @@ def reset_with_token(token):
 
         return redirect(url_for('login'))
 
-    return render_template('reset_with_token.html', form=form, token=token)
+    return render_template('resetPasswordToken.html', form=form, token=token)
 
 
 @app.route("/register", methods=['GET', 'POST'])
