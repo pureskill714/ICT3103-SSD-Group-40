@@ -51,7 +51,7 @@ data3 = base64.b64encode(code)
 seckey = data1 + data3  # Random 16bytes+base16
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
-app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
+app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
@@ -266,6 +266,23 @@ def encode(input):
     except UnicodeDecodeError:
         return None
 
+def check_session(username, session_ID):
+    username = encode(username)
+    session_ID = encode(session_ID)
+    conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+    cursor = conn.cursor()
+    cursor.execute('EXEC check_session %s, %s', username, session_ID)
+
+    res = cursor.fetchone()[0]
+    conn.close()
+    
+    if res is not None:
+        return
+    else:
+        logout_user()  # log the user out
+        session.clear()  # Ensure session is cleared
+        session.pop('username', None)  # Remove session after user has logout
+    return
 
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 def login():
@@ -348,7 +365,7 @@ def mfa():
 
     # check if the user exists in the database
     if form.validate_on_submit():
-        if form.mfa.data == session['generated']:
+        if str(form.mfa.data) == session['generated']:
             return redirect(url_for('customerdashboard'))
         else:
             # currently unable to flash this for some reason, it flashes on login screen instead :/
