@@ -609,7 +609,7 @@ def bookingtable():
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     User_UUID = 'DD542958-2979-4B20-99CE-615683E7027A'
-    cursor.execute("get_my_bookings  %s", User_UUID)
+    cursor.execute("EXEC get_my_bookings  %s", User_UUID)
     bookings = cursor.fetchall()
     conn.close()
     return render_template('tables/bookingtable.html', bookings=bookings)
