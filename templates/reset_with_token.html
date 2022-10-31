@@ -7,9 +7,9 @@
             <div class="d-table-cell align-middle">
 
                 <div class="text-center mt-4">
-                    <h2>Forgot Password</h2>
+                    <h2>Set New Password</h2>
                     <p class="lead">
-                        Enter your email to reset your password
+                        Set a new password for you account
                     </p>
                 </div>
                 {% with messages = get_flashed_messages() %}
@@ -25,18 +25,27 @@
                 <div class="card">
                     <div class="card-body">
                         <div class="m-sm-4">
-                            <form action="" method="post">
-                                {{ form.hidden_tag() }}
+                            <form action="{{ url_for('reset_with_token', token=token) }}" method="POST">
+                                {{ form.csrf_token }}
+
                                 <div class="form-group">
-                                    {{ form.email.label }}
-                                    {{ form.email(class_="form-control form-control-lg" + (" is-invalid" if form.email.errors else "") + "", placeholder="Enter your email") }}
+                                    {{ form.password.label }}
+                                    {{ form.password(class_="form-control form-control-lg" + (" is-invalid" if form.password.errors else "") + "", placeholder="Enter your new password") }}
                                 </div>
-                                {% for error in form.email.errors %}
+                                {% for error in form.password.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
+
+                                <div class="form-group">
+                                    {{ form.password2.label }}
+                                    {{ form.password2(class_="form-control form-control-lg" + (" is-invalid" if form.password2.errors else "") + "", placeholder="Enter your new password") }}
+                                </div>
+                                {% for error in form.password2.errors %}
                                 <span style="color: red;">{{ error }}</span>
                                 {% endfor %}
 
                                 <div class="text-center mt-3">
-                                    {{ form.submit(class="btn btn-lg btn-primary") }}
+                                    <button type="submit" class="btn btn-lg btn-primary">Change password</button>
                                 </div>
                             </form>
                         </div>
