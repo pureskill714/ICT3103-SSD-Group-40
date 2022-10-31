@@ -177,7 +177,7 @@ class RegisterForm(FlaskForm):
                                                                            validators.Length(min=8, max=32)])
 
     # For users to enter their contact number
-    # contact = IntegerField(validators=[InputRequired()])
+    contact = IntegerField(validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
 
@@ -417,7 +417,7 @@ def register():
         email = encode(form.email.data)
         fname = encode(form.firstname.data)
         lname = encode(form.lastname.data)
-        # contact = form.contact.data
+        contact = form.contact.data
 
         # Verifies that there are no issues with encoding
         if passwordInput is None or username is None or email is None or fname is None or lname is None:
@@ -434,8 +434,8 @@ def register():
 
         # Execute statement for running the stored procedure
         # Raw inputs are formatted and parameterized into a prepared statement
-        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s",
-                       (username, hashed_password, email, fname, lname))
+        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s, @contact = %s",
+                       (username, hashed_password, email, fname, lname, contact))
         res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
@@ -468,15 +468,15 @@ def staffregister():
         email = encode(form.email.data)
         fname = encode(form.firstname.data)
         lname = encode(form.lastname.data)
-        # contact = encode(form.contact.data)
+        contact = form.contact.data
 
         if username is None or email is None or fname is None or lname is None:
             flash("Please check your user inputs again.")
             return render_template('register.html', form=form)
 
         cursor = conn.cursor()
-        cursor.execute("EXEC register_staff @username = %s, @email = %s, @fname = %s, @lname = %s",
-                       (username, email, fname, lname))
+        cursor.execute("EXEC register_staff @username = %s, @email = %s, @fname = %s, @lname = %s, @contact = %s",
+                       (username, email, fname, lname, contact))
         res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
