@@ -285,7 +285,7 @@ def login():
 
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
         # Prevent users from entering non-ascii encoded characters
@@ -414,7 +414,7 @@ def forgetPassword():
     # logout_user()  # log the user out
     form = forgotPasswordEmailForm()
     if form.validate_on_submit():
-        conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
+        conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM Users WHERE Email=%s', form.email.data)
         user_email = cursor.fetchone()
@@ -454,7 +454,7 @@ def reset_with_token(token):
     form = newPasswordForm()
 
     if form.validate_on_submit():
-        conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
+        conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM Users WHERE Email=%s', email)
         user_email = cursor.fetchone()
@@ -479,7 +479,7 @@ def register():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
 
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -531,7 +531,7 @@ def staffregister():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
 
         # Run encode/decode check functions
         username = encode(form.username.data)
@@ -570,7 +570,7 @@ def staffregister():
 
 @app.route('/customertable')
 def customertable():
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
@@ -581,7 +581,7 @@ def customertable():
 
 @app.route('/stafftable')
 def stafftable():
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
@@ -593,7 +593,7 @@ def stafftable():
 @app.route('/pendingbookingtable', methods=['GET', 'POST'])
 def pendingbookingtable():
     approve = ApproveBooking()
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     get_bookings = "SELECT * FROM get_pending_bookings"
     cursor.execute(get_bookings)
@@ -603,7 +603,7 @@ def pendingbookingtable():
 
 @app.route('/bookingtable', methods=['GET', 'POST'])
 def bookingtable():
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     User_UUID = 'DD542958-2979-4B20-99CE-615683E7027A'
     cursor.execute("get_my_bookings  %s", User_UUID)
@@ -613,7 +613,7 @@ def bookingtable():
 
 @app.route('/pendingbookingapprove/<string:id>', methods=['GET', 'POST'])
 def pendingBookingApprove(id):
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC approve_bookings %s", id)
     conn.commit()
@@ -638,7 +638,7 @@ def staffUpdateSearch():
 def staffUpdateValue():
     username = request.form['username']
 
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     res = list(cursor.fetchone())
@@ -664,7 +664,7 @@ def staffUpdateSubmit():
     contact = request.form['contact']
     print(username, firstname, lastname, email, address, DOB, country, city, contact)
 
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d",
                    (username, email, firstname, lastname, address, DOB, country, city, contact))
@@ -763,7 +763,7 @@ def booking():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
         room_type = form.room_type.data
@@ -798,7 +798,7 @@ def booking():
 @app.route("/viewreservation", methods=['GET', 'POST'])
 # @login_required
 def ViewReservation():
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
 
     # get the booking details of current logged in user
