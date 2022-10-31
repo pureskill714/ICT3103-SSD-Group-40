@@ -66,7 +66,6 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Strict',
 )
 
-
 # function to generate OTP
 def generateOTP():
     # Declare a string variable, only digits in this case
@@ -78,23 +77,17 @@ def generateOTP():
 
     return sixotp
 
-
 def gmail_send_message(otp, emailadd):
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
     directory = os.getcwd()
-    print("this is the directory " + directory)
     x = directory + "\\token.json"
-    print(x)
-    print("but here can print")
 
     ### idk why cannot call this file
     if os.path.exists(x):
-        print("IT ENTERS THE PATH BRO")
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-        print(str(creds))
 
     # creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
@@ -116,11 +109,11 @@ def gmail_send_message(otp, emailadd):
         service = build('gmail', 'v1', credentials=creds)
         message = EmailMessage()
 
-        message.set_content('OTP for Cozy Room Inn is ' + otp)
+        message.set_content('OTP for Cozy Room Inn is ' + otp + '\n\nIf you did not attempt a login to your account, please contact an administrator immediately')
 
         message['To'] = (emailadd)
         message['From'] = 'noreply.cozyinn@gmail.com'
-        message['Subject'] = ('OTP for Cozy Room Inn is ' + otp)
+        message['Subject'] = ('Login attempt to Cozy Room Inn')
 
         # encoded message
         encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
@@ -131,10 +124,11 @@ def gmail_send_message(otp, emailadd):
         # pylint: disable=E1101
         send_message = (service.users().messages().send
                         (userId="me", body=create_message).execute())
-        print(F'Message Id: {send_message["id"]}')
-        print(send_message)
+        # Should be a log
+        #print(F'Message Id: {send_message["id"]}')
     except HttpError as error:
-        print(F'An error occurred: {error}')
+        # Should be a log
+        # print(F'An error occurred: {error}')
         send_message = None
     return send_message
 
@@ -147,18 +141,15 @@ login_manager.login_message = u"Username or Password incorrect. Please try again
 
 ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
-
-# not sure what this does, can we remove?
 @login_manager.user_loader
 def load_user_customer(user_id):
     return 1
-
 
 class RegisterForm(FlaskForm):
     # For users to choose a first name
     firstname = StringField('First Name', validators=[InputRequired(),
                                         Length(min=2, max=64)])
-    # For users to choose a last name
+    # For users to choose a last nameaddress
     lastname = StringField('Last Name', validators=[InputRequired(),
                                        Length(min=2, max=64)])
 
@@ -200,7 +191,7 @@ class LoginForm(FlaskForm):
 
 class MfaForm(FlaskForm):
     # For users to enter otp
-    mfa = StringField(validators=[InputRequired(), Length(min=6, max=6)])
+    mfa = IntegerField(validators=[InputRequired()])
 
 
 class StaffRegisterForm(FlaskForm):
@@ -256,7 +247,6 @@ class newPasswordForm(FlaskForm):
 class ApproveBooking(FlaskForm):
     approveButton = SubmitField('Approve Booking')
 
-
 # App routes help to redirect to different pages of the website
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
@@ -287,10 +277,6 @@ def login():
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
         conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
         cursor = conn.cursor()
-
-        # Prevent users from entering non-ascii encoded characters
-        # username = form.username.data.encode(encoding="ascii", errors="ignore")
-        # print(username)
 
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -339,13 +325,10 @@ def login():
             generated = generateOTP()
             # when session is created need declare variable here // session['generatedOTP'] = 'my_value'
             session['generated'] = generated
-            print(generated)
-            print(user_email)
             gmail_send_message(generated, user_email)
             # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             return redirect(url_for('mfa'))
 
-            # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             if role_ID == 1:
                 return redirect(url_for('customerdashboard'))
             elif role_ID == 2:
@@ -365,11 +348,7 @@ def mfa():
 
     # check if the user exists in the database
     if form.validate_on_submit():
-        print(form.mfa.data)
-        # print("MFA CHECKING")
-
         if form.mfa.data == session['generated']:
-            # print("MFA CHECKED")
             return redirect(url_for('customerdashboard'))
         else:
             # currently unable to flash this for some reason, it flashes on login screen instead :/
@@ -414,18 +393,23 @@ def forgetPassword():
     # logout_user()  # log the user out
     form = forgotPasswordEmailForm()
     if form.validate_on_submit():
+        email = encode(form.email.data)
+
         conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM Users WHERE Email=%s', form.email.data)
-        user_email = cursor.fetchone()
+        cursor.execute('EXEC check_email %s', form.email.data)
+        result = cursor.fetchone()
+
         conn.close()
         flash(f'Password reset instructions sent to {form.email.data}', 'success')
-        if user_email is not None:
+
+        if(result[0] == 1):
+            #Email of the user found
             from util import create_message, send_message, service
 
             subject = "Password reset requested"
 
-            token = ts.dumps(user_email[5], salt='recover-key')
+            token = ts.dumps(email, salt='recover-key')
 
             recover_url = url_for(
                 'reset_with_token',
@@ -436,8 +420,14 @@ def forgetPassword():
                 'email/recover.html',
                 recover_url=recover_url)
 
-            message = create_message('noreply.cozyinn@gmail.com',user_email[5],subject,html)
+            message = create_message('noreply.cozyinn@gmail.com', email, subject, html)
             send_message(service=service, user_id='me', message=message)
+
+        elif(result[0] == 2):
+            #email of the user not found, create log with IP here
+            ip_addr = request.remote_addr
+            pass
+            
         # return redirect(url_for('forgetPassword'))
 
     return render_template('forgetpassword.html', form=form)
@@ -454,19 +444,15 @@ def reset_with_token(token):
     form = newPasswordForm()
 
     if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data)
+
         conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM Users WHERE Email=%s', email)
-        user_email = cursor.fetchone()
+        cursor.execute('EXEC update_password %s, %s', (email, hashed_password))
+        conn.commit()
         conn.close()
 
-        # user.password = form.password.data
-        #
-        # db.session.add(user)
-        # db.session.commit()
         flash("Set new password successfully")
-        # flash('Set new password successfully', 'success')
-
         return redirect(url_for('login'))
 
     return render_template('resetPasswordToken.html', form=form, token=token)
@@ -645,7 +631,6 @@ def staffUpdateValue():
     for i in range(len(res)):
         if res[i] == None:
             res[i] = ""
-    print(res)
     conn.close()
 
     return render_template('staffCRUD/staff_update_value.html', details=res, username=username)
@@ -662,7 +647,6 @@ def staffUpdateSubmit():
     country = request.form['country']
     city = request.form['city']
     contact = request.form['contact']
-    print(username, firstname, lastname, email, address, DOB, country, city, contact)
 
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
@@ -780,9 +764,11 @@ def booking():
             room_type = 1
 
         # Send the data to database
-        cursor.execute("EXEC setup_booking 1, %d, %s, %s, %s ", (room_type, "", start_date, end_date))
 
+        res = 0
+        cursor.execute("EXEC setup_booking 1, %d, %s, %s, %s", (room_type, "", start_date, end_date))
         res = cursor.fetchone()[0]
+        
         conn.commit()
         conn.close()
         if res == 1:  # Booking pending approval
