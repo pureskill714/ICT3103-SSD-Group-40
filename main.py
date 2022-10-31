@@ -199,7 +199,8 @@ class MfaForm(FlaskForm):
     # For users to enter otp
     mfa = StringField(validators=[InputRequired(), Length(min=6, max=6)])
 
-
+#### For manager (CRUD) staff data #####
+# 1) to register staff
 class StaffRegisterForm(FlaskForm):
     # For users to choose a first name
     firstname = StringField(validators=[InputRequired(),
@@ -222,6 +223,42 @@ class StaffRegisterForm(FlaskForm):
     submit = SubmitField("Register")  # Register button once they are done
 
 
+# 2) to create staff account
+class createStaffAccount(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+    # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+    access = IntegerField('Access: ')
+    
+    submit = SubmitField('Create Staff')
+
+# 3) Update staff account    
+class updateStaffAccount(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+    # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+    access = IntegerField('Access: ')
+    
+    submit = SubmitField('Update')
+    
+# 4) Delete staff account
+class deleteStaffAccount(FlaskForm):
+    deleteButton = SubmitField('Delete staff')
+
+## Staff and customer booking ####    
+# Customer Create booking 
 class BookingForm(FlaskForm):
     room_type = SelectField(u'Room Type',
                             choices=[('Standard Twin', 'Standard Twin'), ('Standard Queen', 'Standard Queen'),
@@ -242,6 +279,43 @@ class BookingForm(FlaskForm):
 
 class ApproveBooking(FlaskForm):
     approveButton = SubmitField('Approve Booking')
+
+
+# For customer and staff to update booking
+class updateBooking(FlaskForm):
+    room_type = SelectField(u'Room Type',
+                        choices=[('Standard Twin', 'Standard Twin'), ('Standard Queen', 'Standard Queen'),
+                                    ('Deluxe', 'Deluxe')])
+    today = date.today()
+    start_date = DateField('Start Date', format='%Y-%m-%d', default=today, validators=(validators.DataRequired(),))
+    end_date = DateField('End date', validators=[DataRequired()])
+    submit = SubmitField('Update Booking')
+
+    def validate_start_date(self, date):
+        if self.start_date.data < datetime.datetime.now().date():
+            raise ValidationError('You can only book for day from today.')
+
+    def validate_end_date(self, date):
+        if self.end_date.data < self.start_date.data:
+            raise ValidationError('You can only select end date after start date.')
+
+class deleteBooking(FlaskForm):
+    deleteButton = SubmitField('Delete booking')
+    
+### For Customer Particular ### 
+# to edit customer details    
+class updateCustomerdata(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+        # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+
+    submit = SubmitField('Update Particular')
 
 
 # App routes help to redirect to different pages of the website
@@ -737,6 +811,12 @@ def ViewReservation():
 
     return render_template('bookings/viewreservation.html', bookings=bookings_made)
 
+# Role access control
+ACCESS ={
+    'customer': 0,
+    'staff': 1,
+    'manager': 2,
+}
 
 if __name__ == '__main__':
     app.run(debug=True)
