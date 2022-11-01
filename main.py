@@ -16,6 +16,7 @@ import pymssql
 import datetime
 from datetime import date, timedelta
 from itsdangerous import URLSafeTimedSerializer
+import stripe
 
 # import library for OTP
 import math, random
@@ -52,11 +53,18 @@ seckey = data1 + data3  # Random 16bytes+base16
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) # To give session timeout if user idle
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
+
+stripe_keys = {
+    'secret_key': "sk_test_51LyqY9EsefqfyEMpEdDt2yqYyWnOdWuVrKXaz81Z6pviQZGp6fOepWIO2iqkloxuKnHyXCkEMEEytaeUiZRiBCMO00obWmTQlE",
+    'publishable_key': "pk_test_51LyqY9EsefqfyEMpZFIUI5eydUQKyZpNqyays3S463Hz4TEHrXCN7Yyk0dlgB7M2pkjnF1NtsdHSwWfaCmCeZvCY00yk4perh9"
+}
+
+stripe.api_key = stripe_keys['secret_key']
 
 csrf = CSRFProtect(app)  # globally enable csrf protection within the application
 
@@ -157,14 +165,14 @@ def load_user_customer(user_id):
 class RegisterForm(FlaskForm):
     # For users to choose a first name
     firstname = StringField('First Name', validators=[InputRequired(),
-                                        Length(min=2, max=64)])
+                                                      Length(min=2, max=64)])
     # For users to choose a last name
     lastname = StringField('Last Name', validators=[InputRequired(),
-                                       Length(min=2, max=64)])
+                                                    Length(min=2, max=64)])
 
     # For users to input their email
     email = EmailField('Email', validators=[InputRequired("Please enter email address"),
-                                   Length(min=4, max=254), Email()])
+                                            Length(min=4, max=254), Email()])
 
     # For users to choose a username
     username = StringField(validators=[InputRequired(),
@@ -242,16 +250,19 @@ class BookingForm(FlaskForm):
         if self.end_date.data < self.start_date.data:
             raise ValidationError('You can only select end date after start date.')
 
+
 class forgotPasswordEmailForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(),
                                              Length(min=4, max=254), Email()])
     submit = SubmitField('Reset password')
+
 
 class newPasswordForm(FlaskForm):
     password = PasswordField('New Password', validators=[DataRequired(), Length(min=8, max=64)])
     password2 = PasswordField('Confirm your new Password',
                               validators=[DataRequired(), Length(min=8, max=64),
                                           EqualTo('password', message='Passwords must match')])
+
 
 class ApproveBooking(FlaskForm):
     approveButton = SubmitField('Approve Booking')
@@ -261,8 +272,8 @@ class ApproveBooking(FlaskForm):
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    #session.clear() # To ensure the session is cleared before passing
-    #session.pop('username', None) # Remove session after return to home page
+    # session.clear() # To ensure the session is cleared before passing
+    # session.pop('username', None) # Remove session after return to home page
     resp = app.make_response(render_template('index.html'))
     resp.set_cookie('username', expires=0)  # to set expiry time of cookie to 0 after user logout
     return resp
@@ -285,7 +296,7 @@ def login():
 
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
 
         # Prevent users from entering non-ascii encoded characters
@@ -436,7 +447,7 @@ def forgetPassword():
                 'email/recover.html',
                 recover_url=recover_url)
 
-            message = create_message('noreply.cozyinn@gmail.com',user_email[5],subject,html)
+            message = create_message('noreply.cozyinn@gmail.com', user_email[5], subject, html)
             send_message(service=service, user_id='me', message=message)
         # return redirect(url_for('forgetPassword'))
 
@@ -479,7 +490,7 @@ def register():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
 
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -504,8 +515,9 @@ def register():
 
         # Execute statement for running the stored procedure
         # Raw inputs are formatted and parameterized into a prepared statement
-        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s, @contact = %s",
-                       (username, hashed_password, email, fname, lname, contact))
+        cursor.execute(
+            "EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s, @contact = %s",
+            (username, hashed_password, email, fname, lname, contact))
         res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
@@ -531,7 +543,7 @@ def staffregister():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
 
         # Run encode/decode check functions
         username = encode(form.username.data)
@@ -570,7 +582,7 @@ def staffregister():
 
 @app.route('/customertable')
 def customertable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
@@ -581,7 +593,7 @@ def customertable():
 
 @app.route('/stafftable')
 def stafftable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
@@ -593,7 +605,7 @@ def stafftable():
 @app.route('/pendingbookingtable', methods=['GET', 'POST'])
 def pendingbookingtable():
     approve = ApproveBooking()
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     get_bookings = "SELECT * FROM get_pending_bookings"
     cursor.execute(get_bookings)
@@ -601,9 +613,10 @@ def pendingbookingtable():
     conn.close()
     return render_template('tables/pendingbookingtable.html', bookings=bookings, approve=approve)
 
+
 @app.route('/bookingtable', methods=['GET', 'POST'])
 def bookingtable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     User_UUID = 'DD542958-2979-4B20-99CE-615683E7027A'
     cursor.execute("get_my_bookings  %s", User_UUID)
@@ -611,23 +624,26 @@ def bookingtable():
     conn.close()
     return render_template('tables/bookingtable.html', bookings=bookings)
 
+
 @app.route('/pendingbookingapprove/<string:id>', methods=['GET', 'POST'])
 def pendingBookingApprove(id):
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC approve_bookings %s", id)
     conn.commit()
     conn.close()
     return render_template('bookings/bookingapproved.html')
 
+
 @app.route('/approvedbookingtable', methods=['GET', 'POST'])
 def approvedbookingtable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_approved_bookings")
     bookings = cursor.fetchall()
     conn.close()
     return render_template('tables/approvedbookingtable.html', bookings=bookings)
+
 
 @app.route('/staffupdatesearch', methods=['GET', 'POST'])
 def staffUpdateSearch():
@@ -638,7 +654,7 @@ def staffUpdateSearch():
 def staffUpdateValue():
     username = request.form['username']
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     res = list(cursor.fetchone())
@@ -664,7 +680,7 @@ def staffUpdateSubmit():
     contact = request.form['contact']
     print(username, firstname, lastname, email, address, DOB, country, city, contact)
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d",
                    (username, email, firstname, lastname, address, DOB, country, city, contact))
@@ -675,7 +691,7 @@ def staffUpdateSubmit():
 
 
 @app.route('/registersuccess')
-@login_required  # ensure is logged then, only then can log out
+# @login_required  # ensure is logged then, only then can log out
 def registersuccess():
     return render_template('registersucess.html')
 
@@ -763,12 +779,21 @@ def booking():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
 
         room_type = form.room_type.data
         start_date = form.start_date.data
         end_date = form.end_date.data
+
+        print(start_date)
+        print(end_date)
+        format = "%Y/%m/%d"
+        start_date_formatted = start_date.strftime(format)
+        end_date_formatted = end_date.strftime(format)
+        num_days = end_date - start_date
+        num_days = num_days.days
+        print(num_days)
 
         if room_type == "Standard Twin":
             room_type = 1
@@ -779,14 +804,27 @@ def booking():
         else:
             room_type = 1
 
+        if room_type == 1:
+            cost = num_days * 50
+        if room_type == 2:
+            cost = num_days * 70
+        if room_type == 3:
+            cost = num_days * 100
+
+        session['STRIPEpayment'] = cost * 100
+
         # Send the data to database
-        cursor.execute("EXEC setup_booking 1, %d, %s, %s, %s ", (room_type, "", start_date, end_date))
+        cursor.execute("EXEC setup_booking 3, %d, %s, %s, %s ", (room_type, "", start_date, end_date))
 
         res = cursor.fetchone()[0]
+        res = 1
         conn.commit()
         conn.close()
         if res == 1:  # Booking pending approval
-            return render_template('bookings/bookingsuccess.html')
+            return render_template('STRIPEpayment/payment.html', room_type_string=form.room_type.data,
+                                   room_type_id=room_type, start_date=start_date, end_date=end_date, num_days=num_days,
+                                   cost=cost, key=stripe_keys['publishable_key'],
+                                   stripe_payment=session['STRIPEpayment'])
         elif res == 2:
             flash("Booking failed. No rooms of this type available during date range. Or input error detected")
         else:
@@ -795,14 +833,33 @@ def booking():
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
 
+@app.route('/checkout', methods=['POST', 'GET'])
+def checkout():
+
+    customer = stripe.Customer.create(
+        source=request.form['stripeToken']
+    )
+
+    stripe.Charge.create(
+        customer=customer.id,
+        amount=session['STRIPEpayment'],
+        currency='sgd',
+        description='Booking Payment'
+    )
+
+    amount = session['STRIPEpayment']/100
+
+    return render_template('STRIPEpayment/checkout.html', amount=amount)
+
+
 @app.route("/viewreservation", methods=['GET', 'POST'])
 # @login_required
 def ViewReservation():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
 
     # get the booking details of current logged in user
-    cursor.execute('SELECT room_ID, start_date, end_date, booking_status from Bookings where user_id = %d', 1)
+    cursor.execute('SELECT room_ID, start_date, end_date, booking_status from Bookings where user_id = %d', 3)
     bookings_made = cursor.fetchall()
 
     return render_template('bookings/viewreservation.html', bookings=bookings_made)
