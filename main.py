@@ -3,7 +3,7 @@ from __future__ import print_function  # not sure if can remove this
 
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session, g, current_app
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm, RecaptchaField
@@ -12,6 +12,8 @@ from wtforms import StringField, PasswordField, SubmitField, IntegerField, Email
 from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired, EqualTo
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
+from flask_rbac import RBAC, RoleMixin, UserMixin
+
 import pymssql
 import datetime
 from datetime import date, timedelta
@@ -48,17 +50,20 @@ data1 = os.urandom(16)
 secret = "secretcode"
 code = bytes(secret, "utf-8")
 data3 = base64.b64encode(code)
-seckey = data1 + data3  # Random 16bytes+base16
+seckey = data1 + data3  # Random 16bytes+base64
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
-app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
+app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
+app.config['RBAC_USE_WHITE'] = True # Only allowing rules can access the resources
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
 
 csrf = CSRFProtect(app)  # globally enable csrf protection within the application
+
+rbac = RBAC(app) #role-based access control
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,
@@ -145,6 +150,33 @@ ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 def load_user_customer(user_id):
     return 1
 
+#Setup CRUD
+class Role(RoleMixin):
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    #cursor.execute("EXEC check_session %s, %s", ('SESSION_ID', 'Role_name'))
+    cursor.execute("EXEC check_session %s, %s", ('SESSION_ID', 'Username'))
+    
+
+    roles_id = cursor.fetchall()
+    # parents = roles_id.relationship(
+    #     'Role',
+    #     primaryjoin=(roles_id == role)
+    # )
+    print(roles_id)
+            
+
+    conn.commit()
+    conn.close()
+        
+
+anonymous = Role('anonymous')        
+customer = Role('customer')
+staff = Role('staff')
+manager = Role('manager')
+
+rbac.set_role_model(Role)
+
 class RegisterForm(FlaskForm):
     # For users to choose a first name
     firstname = StringField('First Name', validators=[InputRequired(),
@@ -193,7 +225,8 @@ class MfaForm(FlaskForm):
     # For users to enter otp
     mfa = IntegerField(validators=[InputRequired()])
 
-
+###### Manager's CRUD staff's data ######
+# 1) Register staff  
 class StaffRegisterForm(FlaskForm):
     # For users to choose a first name
     firstname = StringField(validators=[InputRequired(),
@@ -215,7 +248,41 @@ class StaffRegisterForm(FlaskForm):
 
     submit = SubmitField("Register")  # Register button once they are done
 
+# 2) Create staff account
+class createStaffAccount(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+    # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+    
+    submit = SubmitField('Create Staff')
+    
+# 3) Update staff account
+class updateStaffAccount(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+    # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+    
+    submit = SubmitField('Update')    
 
+# 4) Delete staff account
+class deleteStaffAccount(FlaskForm):
+    deleteButton = SubmitField('Delete staff')
+    
+###### Staff RUD
+###### Customer CRUD   
+# 1) Create, register and update Booking data
 class BookingForm(FlaskForm):
     room_type = SelectField(u'Room Type',
                             choices=[('Standard Twin', 'Standard Twin'), ('Standard Queen', 'Standard Queen'),
@@ -233,6 +300,9 @@ class BookingForm(FlaskForm):
         if self.end_date.data < self.start_date.data:
             raise ValidationError('You can only select end date after start date.')
 
+class deleteBooking(FlaskForm):
+    deleteButton = SubmitField('Delete booking')
+
 class forgotPasswordEmailForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(),
                                              Length(min=4, max=254), Email()])
@@ -243,13 +313,14 @@ class newPasswordForm(FlaskForm):
     password2 = PasswordField('Confirm your new Password',
                               validators=[DataRequired(), Length(min=8, max=64),
                                           EqualTo('password', message='Passwords must match')])
-
+# manager approve booking
 class ApproveBooking(FlaskForm):
     approveButton = SubmitField('Approve Booking')
 
 # App routes help to redirect to different pages of the website
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
+@rbac.allow(['anonymous'], methods = ['GET','POST'])
 def home():
     #session.clear() # To ensure the session is cleared before passing
     #session.pop('username', None) # Remove session after return to home page
@@ -268,6 +339,7 @@ def encode(input):
 
 
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
+@rbac.allow(['anonymous'], methods = ['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
@@ -275,7 +347,7 @@ def login():
 
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
         # Run encode/decode check functions
@@ -343,12 +415,13 @@ def login():
 
 @app.route("/mfa", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 # @login_required  # ensure is logged then, only then can access the dashboard
+@rbac.allow(['anonymous'], methods = ['GET', 'POST'])
 def mfa():
     form = MfaForm()
 
     # check if the user exists in the database
     if form.validate_on_submit():
-        if form.mfa.data == session['generated']:
+        if str(form.mfa.data) == session['generated']:
             return redirect(url_for('customerdashboard'))
         else:
             # currently unable to flash this for some reason, it flashes on login screen instead :/
@@ -359,6 +432,8 @@ def mfa():
 
 @app.route("/customerdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
+@rbac.allow(['customer'], methods = ['GET', 'POST'])
+#@rbac.allow(['anonymous'], methods = ['GET', 'POST'])
 def customerdashboard():
     if "username" in session:
         username = session["username"]
@@ -368,18 +443,21 @@ def customerdashboard():
 
 
 @app.route("/staffdashboard", methods=['GET', 'POST'])
+@rbac.allow(['staff'], methods = ['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def staffdashboard():
     return render_template('dashboards/staffdashboard.html')
 
 
 @app.route("/managerdashboard", methods=['GET', 'POST'])
+@rbac.allow(['manager'], methods = ['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def managerdashboard():
     return render_template('dashboards/managerdashboard.html')
 
 
 @app.route("/logout", methods=['GET', 'POST'])
+@rbac.allow(['customer', 'staff', 'manager'], methods = ['GET', 'POST'])
 @login_required  # ensure is logged then, only then can log out
 def logout():
     logout_user()  # log the user out
@@ -389,13 +467,14 @@ def logout():
 
 
 @app.route("/forgetPassword", methods=['GET', 'POST'])
+@rbac.allow(['anonymous'], methods = ['GET', 'POST'])
 def forgetPassword():
     # logout_user()  # log the user out
     form = forgotPasswordEmailForm()
     if form.validate_on_submit():
         email = encode(form.email.data)
 
-        conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
         cursor = conn.cursor()
         cursor.execute('EXEC check_email %s', form.email.data)
         result = cursor.fetchone()
@@ -434,6 +513,7 @@ def forgetPassword():
 
 
 @app.route('/forgetPassword/<token>', methods=["GET", "POST"])
+@rbac.allow(['anonymous'], methods = ['GET', 'POST'])
 def reset_with_token(token):
     try:
         email = ts.loads(token, salt="recover-key", max_age=360)
@@ -446,7 +526,7 @@ def reset_with_token(token):
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
 
-        conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
         cursor = conn.cursor()
         cursor.execute('EXEC update_password %s, %s', (email, hashed_password))
         conn.commit()
@@ -459,13 +539,14 @@ def reset_with_token(token):
 
 
 @app.route("/register", methods=['GET', 'POST'])
+@rbac.allow(['anonymous'], methods = ['GET', 'POST'])
 def register():
     form = RegisterForm()
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
 
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -511,13 +592,14 @@ def register():
 
 
 @app.route("/staffregister", methods=['GET', 'POST'])
+@rbac.allow(['manager'], methods = ['GET', 'POST'])
 def staffregister():
     form = StaffRegisterForm()
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
 
         # Run encode/decode check functions
         username = encode(form.username.data)
@@ -555,8 +637,9 @@ def staffregister():
 
 
 @app.route('/customertable')
+@rbac.allow(['staff'], methods = ['GET', 'POST'])
 def customertable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
@@ -566,8 +649,9 @@ def customertable():
 
 
 @app.route('/stafftable')
+@rbac.allow(['manager'], methods = ['GET', 'POST'])
 def stafftable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
@@ -577,9 +661,10 @@ def stafftable():
 
 
 @app.route('/pendingbookingtable', methods=['GET', 'POST'])
+@rbac.allow(['staff'], methods = ['GET', 'POST'])
 def pendingbookingtable():
     approve = ApproveBooking()
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     get_bookings = "SELECT * FROM get_pending_bookings"
     cursor.execute(get_bookings)
@@ -588,8 +673,9 @@ def pendingbookingtable():
     return render_template('tables/pendingbookingtable.html', bookings=bookings, approve=approve)
 
 @app.route('/bookingtable', methods=['GET', 'POST'])
+@rbac.allow(['customer'], methods = ['GET', 'POST'])
 def bookingtable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     User_UUID = 'DD542958-2979-4B20-99CE-615683E7027A'
     cursor.execute("get_my_bookings  %s", User_UUID)
@@ -598,8 +684,9 @@ def bookingtable():
     return render_template('tables/bookingtable.html', bookings=bookings)
 
 @app.route('/pendingbookingapprove/<string:id>', methods=['GET', 'POST'])
+@rbac.allow(['staff'], methods = ['GET', 'POST'])
 def pendingBookingApprove(id):
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC approve_bookings %s", id)
     conn.commit()
@@ -607,8 +694,9 @@ def pendingBookingApprove(id):
     return render_template('bookings/bookingapproved.html')
 
 @app.route('/approvedbookingtable', methods=['GET', 'POST'])
+@rbac.allow(['staff'], methods = ['GET', 'POST'])
 def approvedbookingtable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_approved_bookings")
     bookings = cursor.fetchall()
@@ -616,15 +704,17 @@ def approvedbookingtable():
     return render_template('tables/approvedbookingtable.html', bookings=bookings)
 
 @app.route('/staffupdatesearch', methods=['GET', 'POST'])
+@rbac.allow(['manager'], methods = ['GET', 'POST'])
 def staffUpdateSearch():
     return render_template('staffCRUD/staff_update_search.html')
 
 
 @app.route('/staffupdatevalue', methods=['GET', 'POST'])
+@rbac.allow(['manager'], methods = ['GET', 'POST'])
 def staffUpdateValue():
     username = request.form['username']
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     res = list(cursor.fetchone())
@@ -637,6 +727,7 @@ def staffUpdateValue():
 
 
 @app.route('/staffupdatesubmit', methods=['GET', 'POST'])
+@rbac.allow(['manager'], methods = ['GET', 'POST'])
 def staffUpdateSubmit():
     username = request.form['username']
     firstname = request.form['firstname']
@@ -648,7 +739,7 @@ def staffUpdateSubmit():
     city = request.form['city']
     contact = request.form['contact']
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d",
                    (username, email, firstname, lastname, address, DOB, country, city, contact))
@@ -659,23 +750,27 @@ def staffUpdateSubmit():
 
 
 @app.route('/registersuccess')
+@rbac.allow(['anonymous'], methods = ['GET', 'POST'])
 @login_required  # ensure is logged then, only then can log out
 def registersuccess():
     return render_template('registersucess.html')
 
 
 @app.route('/staffregistersucess')
+@rbac.allow(['manager'], methods = ['GET', 'POST'])
 @login_required  # ensure is logged then, only then can log out
 def staffregistersucess():
     return render_template('staffregistersucess.html')
 
 
 @app.route('/staffdeletesearch', methods=['GET', 'POST'])
+@rbac.allow(['manager'], methods = ['GET', 'POST'])
 def staffDeleteSearch():
     return render_template('staffCRUD/staff_delete_search.html')
 
 
 @app.route('/staffdeletesubmit', methods=['GET', 'POST'])
+@rbac.allow(['manager'], methods = ['GET', 'POST'])
 def staffDeleteSubmit():
     return render_template('staffCRUD/staff_update_sucess.html')
 
@@ -741,13 +836,14 @@ def handle_csrf_error(error):
 
 
 @app.route("/booking", methods=['GET', 'POST'])
+@rbac.allow(['customer', 'staff'], methods = ['GET', 'POST'])
 # @login_required
 def booking():
     form = BookingForm()
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
         room_type = form.room_type.data
@@ -782,9 +878,10 @@ def booking():
 
 
 @app.route("/viewreservation", methods=['GET', 'POST'])
+@rbac.allow(['customer', 'staff'], methods = ['GET', 'POST'])
 # @login_required
 def ViewReservation():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
 
     # get the booking details of current logged in user
