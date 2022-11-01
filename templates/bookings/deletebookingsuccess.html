@@ -37,15 +37,6 @@
     background:#444;
     color:#f7c08a;
 }
-
-table{
-            border-collapse: collapse;
-            width: 100%;
-        }
-    th,td{
-        border: 2px solid green;
-        padding: 15px;
-    }
 	  </style>
     <title></title>
     <link
@@ -70,8 +61,8 @@ table{
                 <ul>
                     <li><a href="{{url_for('customerdashboard')}}">Home</a></li>
                     <li><a href="{{url_for('booking')}}">Book Room</a></li>
-                    <li><a href="{{url_for('ViewReservation')}}">View My Reservation</a></li>
-                    <li><a href="{{url_for('logout')}}">Cancel Booking</a></li>
+                    <li><a href="{{url_for('bookingtable')}}">View My Reservation</a></li>
+                    <li><a href="{{url_for('cancelBooking')}}">Cancel Booking</a></li>
                     <li><a href="{{url_for('logout')}}">Logout</a></li>
                 </ul>
               </div>
@@ -81,26 +72,8 @@ table{
       class="text-green text-center font-weight-bold"
       style="font-size: 40px;"
     >
-      Bookings made by you
+      Your booking has been cancelled. Your payment will be refunded within 7 working days. 
     </h1>
-  <table>
-   <tr>
-        <td>Room Type</td>
-        <td>Start Date</td>
-        <td>End Date</td>
-        <td>Booking Status</td>
-    </tr>
-
-       {% for booking in bookings %}
-    <tr>
-        <td>{{ booking[0] }}</td>
-        <td>{{ booking[1] }}</td>
-        <td>{{ booking[2] }}</td>
-        <td>{{ booking[3] }}</td>
-
-    </tr>
-      </form>
-       {% endfor %}
-
-
-  ></table>
+    <center>
+  <h6>Click here to check your reservation details <a class="fpwd" href="{{url_for('ViewReservation')}}">Click Here!</a></h6>
+    </center>

@@ -4,6 +4,9 @@ Flask-Login==0.6.2
 Flask-WTF==1.0.1
 Flask-Bcrypt==1.0.1
 pymssql==2.2.5
+
+WTForms~=3.0.1
+itsdangerous~=2.1.2
 google-api-core==2.10.2
 google-api-python-client==2.64.0
 google-auth==2.12.0

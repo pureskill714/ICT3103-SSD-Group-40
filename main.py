@@ -3,18 +3,20 @@ from __future__ import print_function  # not sure if can remove this
 
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session, g, current_app
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, \
-    DateField
-from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired
+    DateField, TelField
+from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired, EqualTo
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
+
 import pymssql
 import datetime
 from datetime import date, timedelta
+from itsdangerous import URLSafeTimedSerializer
 
 # import library for OTP
 import math, random
@@ -47,10 +49,10 @@ data1 = os.urandom(16)
 secret = "secretcode"
 code = bytes(secret, "utf-8")
 data3 = base64.b64encode(code)
-seckey = data1 + data3  # Random 16bytes+base16
+seckey = data1 + data3  # Random 16bytes+base64
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
-app.config['SECRET_KEY'] = 'thisisasecretkey'  # flask uses secret to secure session cookies and protect our webform
+app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
@@ -65,7 +67,6 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Strict',
 )
 
-
 # function to generate OTP
 def generateOTP():
     # Declare a string variable, only digits in this case
@@ -77,23 +78,17 @@ def generateOTP():
 
     return sixotp
 
-
 def gmail_send_message(otp, emailadd):
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
     directory = os.getcwd()
-    print("this is the directory " + directory)
     x = directory + "\\token.json"
-    print(x)
-    print("but here can print")
 
     ### idk why cannot call this file
     if os.path.exists(x):
-        print("IT ENTERS THE PATH BRO")
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-        print(str(creds))
 
     # creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
@@ -115,11 +110,11 @@ def gmail_send_message(otp, emailadd):
         service = build('gmail', 'v1', credentials=creds)
         message = EmailMessage()
 
-        message.set_content('OTP for Cozy Room Inn is ' + otp)
+        message.set_content('OTP for Cozy Room Inn is ' + otp + '\n\nIf you did not attempt a login to your account, please contact an administrator immediately')
 
         message['To'] = (emailadd)
         message['From'] = 'noreply.cozyinn@gmail.com'
-        message['Subject'] = ('OTP for Cozy Room Inn is ' + otp)
+        message['Subject'] = ('Login attempt to Cozy Room Inn')
 
         # encoded message
         encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
@@ -130,10 +125,11 @@ def gmail_send_message(otp, emailadd):
         # pylint: disable=E1101
         send_message = (service.users().messages().send
                         (userId="me", body=create_message).execute())
-        print(F'Message Id: {send_message["id"]}')
-        print(send_message)
+        # Should be a log
+        #print(F'Message Id: {send_message["id"]}')
     except HttpError as error:
-        print(F'An error occurred: {error}')
+        # Should be a log
+        # print(F'An error occurred: {error}')
         send_message = None
     return send_message
 
@@ -144,23 +140,41 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message = u"Username or Password incorrect. Please try again"
 
+ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
-# not sure what this does, can we remove?
 @login_manager.user_loader
 def load_user_customer(user_id):
     return 1
 
+def check_session(username, session_ID):
+    username = encode(username)
+    session_ID = session_ID
+    conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+    cursor = conn.cursor()
+    cursor.execute('EXEC check_session %s, %s', (username, session_ID))
+
+    res = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    if res is not None:
+        return res
+    else:
+        logout_user()  # log the user out
+        session.clear()  # Ensure session is cleared
+        session.pop('username', None)  # Remove session after user has logout
+    return None
 
 class RegisterForm(FlaskForm):
     # For users to choose a first name
-    firstname = StringField(validators=[InputRequired(),
+    firstname = StringField('First Name', validators=[InputRequired(),
                                         Length(min=2, max=64)])
-    # For users to choose a last name
-    lastname = StringField(validators=[InputRequired(),
+    # For users to choose a last nameaddress
+    lastname = StringField('Last Name', validators=[InputRequired(),
                                        Length(min=2, max=64)])
 
     # For users to input their email
-    email = EmailField(validators=[InputRequired("Please enter email address"),
+    email = EmailField('Email', validators=[InputRequired("Please enter email address"),
                                    Length(min=4, max=254), Email()])
 
     # For users to choose a username
@@ -177,7 +191,7 @@ class RegisterForm(FlaskForm):
                                                                            validators.Length(min=8, max=32)])
 
     # For users to enter their contact number
-    # contact = IntegerField(validators=[InputRequired()])
+    contact = IntegerField('Contact Number', validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
 
@@ -197,9 +211,10 @@ class LoginForm(FlaskForm):
 
 class MfaForm(FlaskForm):
     # For users to enter otp
-    mfa = StringField(validators=[InputRequired(), Length(min=6, max=6)])
+    mfa = IntegerField(validators=[InputRequired()])
 
-
+###### Manager's CRUD staff's data ######
+# 1) Register staff  
 class StaffRegisterForm(FlaskForm):
     # For users to choose a first name
     firstname = StringField(validators=[InputRequired(),
@@ -221,7 +236,41 @@ class StaffRegisterForm(FlaskForm):
 
     submit = SubmitField("Register")  # Register button once they are done
 
+# 2) Create staff account
+class createStaffAccount(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+    # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+    
+    submit = SubmitField('Create Staff')
+    
+# 3) Update staff account
+class updateStaffAccount(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField(validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last name
+    lastname = StringField(validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+    # For users to input their email
+    email = EmailField(validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+    
+    submit = SubmitField('Update')    
 
+# 4) Delete staff account
+class deleteStaffAccount(FlaskForm):
+    deleteButton = SubmitField('Delete staff')
+    
+###### Staff RUD
+###### Customer CRUD   
+# 1) Create, register and update Booking data
 class BookingForm(FlaskForm):
     room_type = SelectField(u'Room Type',
                             choices=[('Standard Twin', 'Standard Twin'), ('Standard Queen', 'Standard Queen'),
@@ -239,20 +288,41 @@ class BookingForm(FlaskForm):
         if self.end_date.data < self.start_date.data:
             raise ValidationError('You can only select end date after start date.')
 
+class deleteBooking(FlaskForm):
+    deleteButton = SubmitField('Delete')
+
+class forgotPasswordEmailForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(),
+                                             Length(min=4, max=254), Email()])
+    submit = SubmitField('Reset password')
+
+class newPasswordForm(FlaskForm):
+    password = PasswordField('New Password', validators=[DataRequired(), Length(min=8, max=64)])
+    password2 = PasswordField('Confirm your new Password',
+                              validators=[DataRequired(), Length(min=8, max=64),
+                                          EqualTo('password', message='Passwords must match')])
 
 class ApproveBooking(FlaskForm):
-    approveButton = SubmitField('Approve Booking')
-
+    approveButton = SubmitField('Approve')
 
 # App routes help to redirect to different pages of the website
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    #session.clear() # To ensure the session is cleared before passing
-    #session.pop('username', None) # Remove session after return to home page 
-    resp = app.make_response(render_template('index.html'))
-    resp.set_cookie('username', expires=0)  # to set expiry time of cookie to 0 after user logout
-    return resp
+    try:
+        res = check_session(session['username'], session['Session_ID'])
+    except:
+        res = '00'
+    if(res[1] == 'Customer'):
+        return redirect(url_for('customerdashboard'))
+    elif(res[1] == 'Staff'):
+        return redirect(url_for('staffdashboard'))
+    elif(res[1] == 'Manager'):
+        return redirect(url_for('managerdashboard'))
+    else:
+        resp = app.make_response(render_template('index.html'))
+        #resp.set_cookie('username', expires=0)  # to set expiry time of cookie to 0 after user logout
+        return resp
 
 
 def encode(input):
@@ -275,10 +345,6 @@ def login():
         conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
         cursor = conn.cursor()
 
-        # Prevent users from entering non-ascii encoded characters
-        # username = form.username.data.encode(encoding="ascii", errors="ignore")
-        # print(username)
-
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
         username = encode(form.username.data)
@@ -300,13 +366,14 @@ def login():
             flash("Username or Password incorrect. Please try again")
             passResult = 0
 
-        # res = cursor.callproc('login_user', (username, int(passResult), request.remote_addr, pymssql.output(str), pymssql.output(int),))
-
         cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
                        (username, int(passResult), request.remote_addr))
 
         try:
             res = cursor.fetchone()
+            global user_email 
+            global UUID
+            global generated
 
             user_email = res[0]
             role_ID = res[1]
@@ -320,25 +387,14 @@ def login():
         conn.commit()
         conn.close()
         if user_email is not None:  # Login was successful
-            session.permanent = True
             session['username'] = username
-
             generated = generateOTP()
-            # when session is created need declare variable here // session['generatedOTP'] = 'my_value'
-            session['generated'] = generated
-            print(generated)
-            print(user_email)
             gmail_send_message(generated, user_email)
             # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             return redirect(url_for('mfa'))
 
-            # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
-            if role_ID == 1:
-                return redirect(url_for('customerdashboard'))
-            elif role_ID == 2:
-                return redirect(url_for('managerdashboard'))
-            else:
-                return render_template('login.html', form=form)
+            #return render_template('mfa.html', username=username, UUID=UUID, otp=generated)
+
         else:
             flash("Username or Password incorrect. Please try again")
 
@@ -352,12 +408,31 @@ def mfa():
 
     # check if the user exists in the database
     if form.validate_on_submit():
-        print(form.mfa.data)
-        # print("MFA CHECKING")
+        if str(form.mfa.data) == generated:
+            session['User_ID'] = UUID
+            
+            Session_ID = os.urandom(16)
+            session['Session_ID'] = Session_ID
+            
+            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+            cursor = conn.cursor()
 
-        if form.mfa.data == session['generated']:
-            # print("MFA CHECKED")
-            return redirect(url_for('customerdashboard'))
+            cursor.execute('EXEC create_session %s, %s', (session['username'], Session_ID))
+            session_check = cursor.fetchone()
+            conn.commit()
+            conn.close()
+
+            res = check_session(session['username'], session['Session_ID'])
+
+            if(res[1] == 'Customer'):
+                return redirect(url_for('customerdashboard'))
+            elif(res[1] == 'Staff'):
+                return redirect(url_for('staffdashboard'))
+            elif(res[1] == 'Manager'):
+                return redirect(url_for('managerdashboard'))
+            else:
+                return render_template('403.html'), 403
+            
         else:
             # currently unable to flash this for some reason, it flashes on login screen instead :/
             flash("MFA incorrect. Please try again")
@@ -368,6 +443,11 @@ def mfa():
 @app.route("/customerdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
+
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Customer'):
+        return render_template('403.html'), 403
+
     if "username" in session:
         username = session["username"]
         return render_template('dashboards/customerdashboard.html', username=session['username'])
@@ -378,18 +458,28 @@ def customerdashboard():
 @app.route("/staffdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def staffdashboard():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Staff'):
+        return render_template('403.html'), 403
     return render_template('dashboards/staffdashboard.html')
 
 
 @app.route("/managerdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def managerdashboard():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Manager'):
+        return render_template('403.html'), 403
     return render_template('dashboards/managerdashboard.html')
 
 
 @app.route("/logout", methods=['GET', 'POST'])
-@login_required  # ensure is logged then, only then can log out
+# @login_required  # ensure is logged then, only then can log out
 def logout():
+    try:
+        res = check_session(session['username'], session['Session_ID'])
+    except:
+        return render_template('403.html'), 403
     logout_user()  # log the user out
     session.clear()  # Ensure session is cleared
     session.pop('username', None)  # Remove session after user has logout
@@ -399,7 +489,71 @@ def logout():
 @app.route("/forgetPassword", methods=['GET', 'POST'])
 def forgetPassword():
     logout_user()  # log the user out
-    return render_template('forgetpassword.html')
+    form = forgotPasswordEmailForm()
+    if form.validate_on_submit():
+        email = encode(form.email.data)
+
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        cursor = conn.cursor()
+        cursor.execute('EXEC check_email %s', form.email.data)
+        result = cursor.fetchone()
+
+        conn.close()
+        flash(f'Password reset instructions sent to {form.email.data}', 'success')
+
+        if(result[0] == 1):
+            #Email of the user found
+            from util import create_message, send_message, service
+
+            subject = "Password reset requested"
+
+            token = ts.dumps(email, salt='recover-key')
+
+            recover_url = url_for(
+                'reset_with_token',
+                token=token,
+                _external=True)
+
+            html = render_template(
+                'email/recover.html',
+                recover_url=recover_url)
+
+            message = create_message('noreply.cozyinn@gmail.com', email, subject, html)
+            send_message(service=service, user_id='me', message=message)
+
+        elif(result[0] == 2):
+            #email of the user not found, create log with IP here
+            ip_addr = request.remote_addr
+            pass
+            
+        # return redirect(url_for('forgetPassword'))
+
+    return render_template('forgetpassword.html', form=form)
+
+
+@app.route('/forgetPassword/<token>', methods=["GET", "POST"])
+def reset_with_token(token):
+    try:
+        email = ts.loads(token, salt="recover-key", max_age=360)
+    except:
+        flash('The confirmation link is invalid or has expired.', 'danger')
+        return redirect(url_for('forgetPassword'))
+
+    form = newPasswordForm()
+
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data)
+
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        cursor = conn.cursor()
+        cursor.execute('EXEC update_password %s, %s', (email, hashed_password))
+        conn.commit()
+        conn.close()
+
+        flash("Set new password successfully")
+        return redirect(url_for('login'))
+
+    return render_template('resetPasswordToken.html', form=form, token=token)
 
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -417,25 +571,24 @@ def register():
         email = encode(form.email.data)
         fname = encode(form.firstname.data)
         lname = encode(form.lastname.data)
-        # contact = form.contact.data
+        contact = form.contact.data
 
         # Verifies that there are no issues with encoding
         if passwordInput is None or username is None or email is None or fname is None or lname is None:
             flash("Please check your user inputs again.")
-            return render_template('register.html', form=form)
+            return render_template('newRegister.html', form=form)
 
         hashed_password = bcrypt.generate_password_hash(passwordInput)
         cursor = conn.cursor()
 
         # The old procedure for registration via running the stored procedure, not sure which method is better
         # args = (str(form.username.data), hashed_password, form.email.data, form.firstname.data, form.lastname.data, pymssql.output(int),)
-        # print(args)
         # res = cursor.callproc('register_customer', args)
 
         # Execute statement for running the stored procedure
         # Raw inputs are formatted and parameterized into a prepared statement
-        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s",
-                       (username, hashed_password, email, fname, lname))
+        cursor.execute("EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s, @contact = %s",
+                       (username, hashed_password, email, fname, lname, contact))
         res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
@@ -451,11 +604,14 @@ def register():
             # Somehow the stored procedure did not run for whatever reason
             flash("Username or Email may already be in use. Please try again. ")
 
-    return render_template('register.html', form=form)
+    return render_template('newRegister.html', form=form)
 
 
 @app.route("/staffregister", methods=['GET', 'POST'])
 def staffregister():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Manager'):
+        return render_template('403.html'), 403
     form = StaffRegisterForm()
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
@@ -468,15 +624,15 @@ def staffregister():
         email = encode(form.email.data)
         fname = encode(form.firstname.data)
         lname = encode(form.lastname.data)
-        # contact = encode(form.contact.data)
+        contact = form.contact.data
 
         if username is None or email is None or fname is None or lname is None:
             flash("Please check your user inputs again.")
             return render_template('register.html', form=form)
 
         cursor = conn.cursor()
-        cursor.execute("EXEC register_staff @username = %s, @email = %s, @fname = %s, @lname = %s",
-                       (username, email, fname, lname))
+        cursor.execute("EXEC register_staff @username = %s, @email = %s, @fname = %s, @lname = %s, @contact = %s",
+                       (username, email, fname, lname, contact))
         res = cursor.fetchone()[0]
         conn.commit()
         conn.close()
@@ -500,6 +656,9 @@ def staffregister():
 
 @app.route('/customertable')
 def customertable():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Staff'):
+        return render_template('403.html'), 403
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
@@ -511,17 +670,24 @@ def customertable():
 
 @app.route('/stafftable')
 def stafftable():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Manager'):
+        return render_template('403.html'), 403
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
-
+    
     conn.close()
     return render_template('tables/stafftable.html', users=res)
 
 
 @app.route('/pendingbookingtable', methods=['GET', 'POST'])
 def pendingbookingtable():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Staff'):
+        return render_template('403.html'), 403
+
     approve = ApproveBooking()
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
@@ -529,29 +695,87 @@ def pendingbookingtable():
     cursor.execute(get_bookings)
     bookings = list(cursor.fetchall())
     conn.close()
+    print(bookings)
     return render_template('tables/pendingbookingtable.html', bookings=bookings, approve=approve)
+
+@app.route('/deleteBookings', methods=['GET', 'POST'])
+def cancelBooking():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Customer'):
+        return render_template('403.html'), 403
+
+    delete = deleteBooking()
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    User_UUID = res[0]
+    cursor.execute("EXEC get_my_bookings %s", User_UUID)
+    
+    bookings = list(cursor.fetchall())
+    conn.close()
+    return render_template('tables/deletebookings.html', bookings=bookings, delete=delete)
+
+@app.route('/deleteBookingConfirm/<string:id>', methods=['GET', 'POST'])
+def deleteBookingConfirm(id):
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Customer'):
+        return render_template('403.html'), 403
+
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    cursor.execute("EXEC delete_bookings %s, %s", (id, res[0]))
+    res = cursor.fetchone()
+
+    conn.commit()
+    conn.close()
+    
+    if res == 1:
+        #successfully cancelled
+        return render_template('bookings/deletebookingsuccess.html')
+    else:
+        flash("Error occured, you cannot cancel any bookings within 7 days")
+        return redirect(url_for('cancelBooking'))
+    
 
 @app.route('/bookingtable', methods=['GET', 'POST'])
 def bookingtable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
-    cursor = conn.cursor()
-    User_UUID = 'DD542958-2979-4B20-99CE-615683E7027A'
-    cursor.execute("get_my_bookings  %s", User_UUID)
-    bookings = cursor.fetchall()
-    conn.close()
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] == 'Customer'):
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        cursor = conn.cursor()
+        User_UUID = res[0]
+        cursor.execute("EXEC get_my_bookings %s", User_UUID)
+        bookings = cursor.fetchall()
+        conn.close()
+    elif(res[1] == 'Staff'):
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        cursor = conn.cursor()
+        cursor.execute("EXEC get_bookings")
+        bookings = cursor.fetchall()
+        conn.close()
+    else: 
+        return render_template('403.html'), 403
+    
     return render_template('tables/bookingtable.html', bookings=bookings)
 
 @app.route('/pendingbookingapprove/<string:id>', methods=['GET', 'POST'])
 def pendingBookingApprove(id):
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Staff'):
+        return render_template('403.html'), 403
+
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC approve_bookings %s", id)
+    print(id)
     conn.commit()
     conn.close()
     return render_template('bookings/bookingapproved.html')
 
 @app.route('/approvedbookingtable', methods=['GET', 'POST'])
 def approvedbookingtable():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Staff'):
+        return render_template('403.html'), 403
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_approved_bookings")
@@ -561,11 +785,17 @@ def approvedbookingtable():
 
 @app.route('/staffupdatesearch', methods=['GET', 'POST'])
 def staffUpdateSearch():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Manager'):
+        return render_template('403.html'), 403
     return render_template('staffCRUD/staff_update_search.html')
 
 
 @app.route('/staffupdatevalue', methods=['GET', 'POST'])
 def staffUpdateValue():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Manager'):
+        return render_template('403.html'), 403
     username = request.form['username']
 
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
@@ -575,7 +805,7 @@ def staffUpdateValue():
     for i in range(len(res)):
         if res[i] == None:
             res[i] = ""
-    print(res)
+
     conn.close()
 
     return render_template('staffCRUD/staff_update_value.html', details=res, username=username)
@@ -583,6 +813,10 @@ def staffUpdateValue():
 
 @app.route('/staffupdatesubmit', methods=['GET', 'POST'])
 def staffUpdateSubmit():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Manager'):
+        return render_template('403.html'), 403
+    
     username = request.form['username']
     firstname = request.form['firstname']
     lastname = request.form['lastname']
@@ -592,7 +826,6 @@ def staffUpdateSubmit():
     country = request.form['country']
     city = request.form['city']
     contact = request.form['contact']
-    print(username, firstname, lastname, email, address, DOB, country, city, contact)
 
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
@@ -689,6 +922,10 @@ def handle_csrf_error(error):
 @app.route("/booking", methods=['GET', 'POST'])
 # @login_required
 def booking():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] != 'Customer'):
+        return render_template('403.html'), 403
+
     form = BookingForm()
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
@@ -710,9 +947,11 @@ def booking():
             room_type = 1
 
         # Send the data to database
-        cursor.execute("EXEC setup_booking 1, %d, %s, %s, %s ", (room_type, "", start_date, end_date))
 
+        res = 0
+        cursor.execute("EXEC setup_booking 1, %d, %s, %s, %s", (room_type, "", start_date, end_date))
         res = cursor.fetchone()[0]
+        
         conn.commit()
         conn.close()
         if res == 1:  # Booking pending approval
@@ -725,17 +964,7 @@ def booking():
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
 
-@app.route("/viewreservation", methods=['GET', 'POST'])
-# @login_required
-def ViewReservation():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
-    cursor = conn.cursor()
 
-    # get the booking details of current logged in user
-    cursor.execute('SELECT room_ID, start_date, end_date, booking_status from Bookings where user_id = %d', 1)
-    bookings_made = cursor.fetchall()
-
-    return render_template('bookings/viewreservation.html', bookings=bookings_made)
 
 
 if __name__ == '__main__':
