@@ -65,9 +65,9 @@ h1, h2, h3 {
                     {% if username %}
                     <li><a href="{{url_for('customerdashboard')}}">Home</a></li>
                     <li><a href="{{url_for('booking')}}">Book Room</a></li>
-                    <li><a href="{{url_for('ViewReservation')}}">View My Reservation</a></li>
-                    <li><a href="{{url_for('logout')}}">Cancel Bookings</a></li>
                     <li><a href="{{url_for('viewProfile')}}">Profile</a></li>
+                    <li><a href="{{url_for('bookingtable')}}">View My Reservation</a></li>
+                    <li><a href="{{url_for('cancelBooking')}}">Cancel Bookings</a></li>
                     <li><a href="{{url_for('logout')}}">Log Out</a></li>
                     {% else %}
                     <li><a href="{{url_for('home')}}">Home</a></li>
