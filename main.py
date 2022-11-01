@@ -3,8 +3,10 @@ from __future__ import print_function  # not sure if can remove this
 
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session
-from flask_login import LoginManager, login_required, login_user, logout_user, current_user
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session, \
+    get_flashed_messages
+from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
+from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, \
     DateField
@@ -28,6 +30,7 @@ import base64
 import os.path
 import base64
 from email.message import EmailMessage
+from encode_and_remove_tag import cleanhtml
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -69,7 +72,7 @@ app.config.update(
 # function to generate OTP
 def generateOTP():
     # Declare a string variable, only digits in this case
-    string = '0123456789'
+    string = '09WoH697&p2oM9'
     sixotp = ""
     length = len(string)
     for i in range(6):
@@ -195,11 +198,12 @@ class RegisterForm(FlaskForm):
     password = PasswordField(label='Password', validators=[InputRequired(),
                                                            validators.Length(min=8, max=64),
                                                            validators.EqualTo('password_confirm',
-                                                                              message='Passwords must match,Please try again')])
+                                                                              message='Passwords must match, Please try again')])
 
     # For users to confirm password
     password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
-                                                                           validators.Length(min=8, max=32),
+                                                           validators.EqualTo('password',
+                                                                              message='Passwords must match, Please try again'),
                                                                            validators.EqualTo('password_confirm',
                                                                               message='Passwords must match,Please try again')])
 
@@ -207,6 +211,52 @@ class RegisterForm(FlaskForm):
     contact = IntegerField('Contact Number', validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
+
+class EditProfileForm(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField('First Name', validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last nameaddress
+    lastname = StringField('Last Name', validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+
+    # For users to input their email
+    email = EmailField('Email', validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+
+    # For users to choose a username
+    username = StringField(render_kw={'disabled': True})
+    country = StringField(validators=[Length(max=128)])
+    city = StringField(validators=[Length(max=128)])
+    address = StringField(validators=[Length(max=255)])
+    dob = DateField("Date of Brith", validators=[validators.Optional()])
+
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                           validators.Length(min=8, max=64)])
+
+
+    # For users to enter their contact number
+    contact = IntegerField('Contact Number', validators=[InputRequired()])
+
+    submit = SubmitField("Save changes")  # Register button once they are done
+
+class ChangePasswordForm(FlaskForm):
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                                   validators.Length(min=8, max=64)])
+
+    # For users to confirm password
+    password2 = PasswordField(label='New Password', validators=[InputRequired(),
+                                                                validators.Length(min=8, max=64),
+                                                                validators.EqualTo('password_confirm2',
+                                                                                   message='Passwords must match, Please try again')])
+    # For users to confirm password
+    password_confirm2 = PasswordField(label='Confirm New Password', validators=[InputRequired(),
+                                                                                validators.Length(min=8, max=64),
+                                                                                validators.EqualTo('password2',
+                                                                                                   message='Passwords must match, Please try again')])
+    submitp = SubmitField("Save")  # Register button once they are done
 
 
 class LoginForm(FlaskForm):
@@ -224,7 +274,7 @@ class LoginForm(FlaskForm):
 
 class MfaForm(FlaskForm):
     # For users to enter otp
-    mfa = IntegerField(validators=[InputRequired()])
+    mfa = StringField(validators=[InputRequired()])
 
 ###### Manager's CRUD staff's data ######
 # 1) Register staff  
@@ -311,6 +361,7 @@ class forgotPasswordEmailForm(FlaskForm):
 
 class newPasswordForm(FlaskForm):
     password = PasswordField('New Password',
+                            
                              validators=[DataRequired(), Length(min=8, max=64),
                                           EqualTo('password2', message='Passwords must match')])
     password2 = PasswordField('Confirm your new Password',
@@ -320,58 +371,13 @@ class newPasswordForm(FlaskForm):
 class ApproveBooking(FlaskForm):
     approveButton = SubmitField('Approve')
 
-class EditProfileForm(FlaskForm):
-    # For users to choose a first name
-    firstname = StringField('First Name', validators=[InputRequired(),
-                                        Length(min=2, max=64)])
-    # For users to choose a last nameaddress
-    lastname = StringField('Last Name', validators=[InputRequired(),
-                                       Length(min=2, max=64)])
-
-    # For users to input their email
-    email = EmailField('Email', validators=[InputRequired("Please enter email address"),
-                                   Length(min=4, max=254), Email()])
-
-    # For users to choose a username
-    username = StringField(render_kw={'disabled': True})
-    country = StringField(validators=[Length(max=128)])
-    city = StringField(validators=[Length(max=128)])
-    address = StringField(validators=[Length(max=255)])
-    dob = DateField("Date of Brith", validators=[validators.Optional()])
-
-    # For users to choose a password
-    password = PasswordField(label='Current Password', validators=[InputRequired(),
-                                                           validators.Length(min=8, max=64)])
-
-
-    # For users to enter their contact number
-    contact = IntegerField('Contact Number', validators=[InputRequired()])
-
-    submit = SubmitField("Save changes")  # Register button once they are done
-
-class ChangePasswordForm(FlaskForm):
-    # For users to choose a password
-    password = PasswordField(label='Current Password', validators=[InputRequired(),
-                                                                   validators.Length(min=8, max=64)])
-
-    # For users to confirm password
-    password2 = PasswordField(label='New Passowrd', validators=[InputRequired(),
-                                                                validators.Length(min=8, max=64),
-                                                                validators.EqualTo('password_confirm2',
-                                                                                   message='Passwords must match, Please try again')])
-    # For users to confirm password
-    password_confirm2 = PasswordField(label='Confirm New Password', validators=[InputRequired(),
-                                                                                validators.Length(min=8, max=64),
-                                                                                validators.EqualTo('password2',
-                                                                                                   message='Passwords must match, Please try again')])
-    submitp = SubmitField("Save")  # Register button once they are done
-
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
     try:
         res = check_session(session['username'], session['Session_ID'])
     except:
+        #User is not logged in
         res = '00'
     if(res[1] == 'Customer'):
         return redirect(url_for('customerdashboard'))
@@ -439,6 +445,7 @@ def login():
         if user_email is not None:  # Login was successful
             session['username'] = username
             generated = generateOTP()
+            print(generated)
             gmail_send_message(generated, user_email)
             # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             return redirect(url_for('mfa'))
@@ -527,7 +534,7 @@ def managerdashboard():
 # @login_required  # ensure is logged then, only then can log out
 def logout():
     try:
-        res = check_session(session['username'], session['Session_ID'])
+        check_session(session['username'], session['Session_ID'])
     except:
         return render_template('403.html'), 403
     logout_user()  # log the user out
@@ -547,7 +554,6 @@ def forgetPassword():
         cursor = conn.cursor()
         cursor.execute('EXEC check_email %s', form.email.data)
         result = cursor.fetchone()
-
         conn.close()
         flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
 
@@ -575,8 +581,6 @@ def forgetPassword():
             #email of the user not found, create log with IP here
             ip_addr = request.remote_addr
             pass
-            
-        # return redirect(url_for('forgetPassword'))
 
     return render_template('forgetpassword.html', form=form)
 
@@ -585,10 +589,10 @@ def forgetPassword():
 def reset_with_token(token):
     try:
         email = ts.loads(token, salt="recover-key", max_age=360)
+        print(email)
     except:
         flash('The confirmation link is invalid or has expired.', 'danger')
         return redirect(url_for('forgetPassword'))
-
     form = newPasswordForm()
 
     if form.validate_on_submit():
@@ -626,7 +630,7 @@ def register():
         # Verifies that there are no issues with encoding
         if passwordInput is None or username is None or email is None or fname is None or lname is None:
             flash("Please check your user inputs again.")
-            return render_template('newRegister.html', form=form)
+            return render_template('register.html', form=form)
 
         hashed_password = bcrypt.generate_password_hash(passwordInput)
         cursor = conn.cursor()
@@ -654,7 +658,7 @@ def register():
             # Somehow the stored procedure did not run for whatever reason
             flash("Username or Email may already be in use. Please try again. ")
 
-    return render_template('newRegister.html', form=form)
+    return render_template('register.html', form=form)
 
 
 @app.route("/staffregister", methods=['GET', 'POST'])
@@ -713,10 +717,9 @@ def customertable():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
-
+    clean_res = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in res]
     conn.close()
-    return render_template('tables/customertable.html', users=res)
-
+    return render_template('tables/customertable.html', users=clean_res)
 
 @app.route('/stafftable')
 def stafftable():
@@ -727,9 +730,9 @@ def stafftable():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
-    
     conn.close()
-    return render_template('tables/stafftable.html', users=res)
+    clean_res = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in res]
+    return render_template('tables/stafftable.html', users=clean_res)
 
 
 @app.route('/pendingbookingtable', methods=['GET', 'POST'])
@@ -745,7 +748,7 @@ def pendingbookingtable():
     cursor.execute(get_bookings)
     bookings = list(cursor.fetchall())
     conn.close()
-    print(bookings)
+    # clean_bookings = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in bookings]
     return render_template('tables/pendingbookingtable.html', bookings=bookings, approve=approve)
 
 @app.route('/deleteBookings', methods=['GET', 'POST'])
@@ -785,7 +788,7 @@ def deleteBookingConfirm(id):
         flash("Error occured, you cannot cancel any bookings within 7 days")
         return redirect(url_for('cancelBooking'))
     
-
+    
 @app.route('/bookingtable', methods=['GET', 'POST'])
 def bookingtable():
     res = check_session(session['username'], session['Session_ID'])
@@ -804,8 +807,9 @@ def bookingtable():
         conn.close()
     else: 
         return render_template('403.html'), 403
-    
-    return render_template('tables/bookingtable.html', bookings=bookings)
+
+    clean_bookings = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in bookings]
+    return render_template('tables/bookingtable.html', bookings=clean_bookings)
 
 @app.route('/pendingbookingapprove/<string:id>', methods=['GET', 'POST'])
 def pendingBookingApprove(id):
@@ -839,7 +843,6 @@ def staffUpdateSearch():
     if(res[1] != 'Manager'):
         return render_template('403.html'), 403
     return render_template('staffCRUD/staff_update_search.html')
-
 
 @app.route('/staffupdatevalue', methods=['GET', 'POST'])
 def staffUpdateValue():
@@ -886,7 +889,102 @@ def staffUpdateSubmit():
     conn.close()
     return render_template('staffCRUD/staff_update_sucess.html')
 
+@app.route("/viewProfile", methods=['GET'])
+# @login_required  # ensure is logged then, only then can access the dashboard
+def viewProfile():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] == 'Customer' or res[1] == 'Staff' or res[1] == 'Manager'):
+        return render_template('403.html'), 403
+    editProfileForm = EditProfileForm()
+    changePasswordForm = ChangePasswordForm()
+    if "username" in session:
+        username = session["username"]
+    else:
+        return redirect(url_for('timeout'))
 
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    cursor.execute("EXEC user_details %s", username)
+    user = cursor.fetchone()
+    conn.close()
+
+    return render_template('customers/editProfile.html', editProfileForm=editProfileForm,
+                           changePasswordForm=changePasswordForm, user=user, username=username)
+
+@app.route('/editprofile', methods=['POST'])
+def editProfile():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] == 'Customer' or res[1] == 'Staff' or res[1] != 'Manager'):
+        return render_template('403.html'), 403
+    editProfileForm = EditProfileForm()
+    changePasswordForm = ChangePasswordForm()
+    try:
+        res = check_session(session['username'], session['Session_ID'])
+        username = session["username"]
+    except:
+        return redirect(url_for('timeout'))
+    
+    if editProfileForm.validate_on_submit():
+        passwordInput = encode(editProfileForm.password.data)
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        cursor = conn.cursor()
+        cursor.execute('EXEC retrieve_password @username = %s', username)
+        passwordHash = cursor.fetchone()
+        # Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
+        if bcrypt.check_password_hash(passwordHash[0], passwordInput):
+            cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d",
+                           (username, editProfileForm.email.data, editProfileForm.firstname.data,
+                            editProfileForm.lastname.data,
+                            editProfileForm.address.data, editProfileForm.dob.data, editProfileForm.country.data,
+                            editProfileForm.city.data, editProfileForm.contact.data))
+            conn.commit()
+            flash("Edit profile successfully", 'success')
+
+        else:
+            flash("Password incorrect. Please try again", "danger")
+
+        redirect(url_for('viewProfile'))
+        
+    cursor.execute("EXEC user_details %s", username)
+    user = cursor.fetchone()
+    conn.close()
+    return render_template('customers/editProfile.html', editProfileForm=editProfileForm, changePasswordForm=changePasswordForm, user=user, username=username)
+
+@app.route('/changepassword', methods=['POST'])
+def changepassword():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] == 'Customer' or res[1] == 'Staff' or res[1] == 'Manager'):
+        return render_template('403.html'), 403
+    editProfileForm = EditProfileForm()
+    changePasswordForm = ChangePasswordForm()
+    if "username" in session:
+        username = session["username"]
+    else:
+        return redirect(url_for('timeout'))
+
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    cursor = conn.cursor()
+    cursor.execute("EXEC user_details %s", username)
+    user = cursor.fetchone()
+    if changePasswordForm.validate_on_submit():
+        passwordInput = encode(changePasswordForm.password.data)
+        cursor.execute('EXEC retrieve_password @username = %s', username)
+        passwordHash = cursor.fetchone()
+        # Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
+        if bcrypt.check_password_hash(passwordHash[0], passwordInput):
+            hashed_password = bcrypt.generate_password_hash(changePasswordForm.password2.data)
+            cursor.execute('EXEC update_password %s, %s', (user[2], hashed_password))
+            conn.commit()
+            flash("Password changed successfully", 'success')
+        else:
+            flash("Current password incorrect. Please try again", "danger")
+        
+        conn.close()
+        redirect(url_for('viewProfile'))
+
+    conn.close()
+    return render_template('customers/editProfile.html', editProfileForm=editProfileForm,
+                           changePasswordForm=changePasswordForm, user=user, username=username)
 @app.route('/registersuccess')
 @login_required  # ensure is logged then, only then can log out
 def registersuccess():
@@ -994,27 +1092,30 @@ def booking():
         elif room_type == "Deluxe":
             room_type = 3
         else:
+            #Default value + logging
             room_type = 1
 
         # Send the data to database
-
-        res = 0
-        cursor.execute("EXEC setup_booking 1, %d, %s, %s, %s", (room_type, "", start_date, end_date))
-        res = cursor.fetchone()[0]
+        cursor.execute("EXEC setup_booking %s, %d, %s, %s, %s", (res[0], room_type, "", start_date, end_date))
         
+        try:
+            res = cursor.fetchone()[0]
+        except:
+            res = 3
+
         conn.commit()
         conn.close()
-        if res == 1:  # Booking pending approval
+        if res == 1:  
+            # Booking pending approval
             return render_template('bookings/bookingsuccess.html')
         elif res == 2:
+            # Database detected that there was no such room available during the date range provided
             flash("Booking failed. No rooms of this type available during date range. Or input error detected")
         else:
+            #For logging purposes
             flash("Booking failed. No rooms of this type available during date range. Or input error detected")
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
-
-
-
 
 
 if __name__ == '__main__':
