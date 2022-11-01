@@ -17,31 +17,30 @@
 
 <body>
 <center>
-<h1>Approved Bookings Table</h1>
+<h1>Delete Bookings Table</h1>
+<h2>You may only delete bookings at least 7 days from now.</h2>
 </center>
   <table>
     <tr>
-        <th>First Name</th>
-        <th>Last Name</th>
-        <th>Customer's Contact</th>
         <th>Room Number</th>
         <th>Room Type</th>
         <th>Start Date</th>
         <th>End Date</th>
         <th>Booking Status</th>
         <th>Booked at</th>
+        <th>Delete</th>
     </tr>
       {% for booking in bookings %}
+        <form action = "{{url_for('deleteBookingConfirm', id=booking[7])}}" method = "POST">
     <tr>
+          {{ delete.csrf_token }} <!-- generates a random hidden field used to protect against CSRF attacks-->
         <td>{{ booking[0] }}</td>
         <td>{{ booking[1] }}</td>
         <td>{{ booking[2] }}</td>
         <td>{{ booking[3] }}</td>
         <td>{{ booking[4] }}</td>
         <td>{{ booking[5] }}</td>
-        <td>{{ booking[6] }}</td>
-        <td>{{ booking[7] }}</td>
-        <td>{{ booking[9] }}</td>
+        <td>{{ delete.deleteButton }}</button></td>
     </tr>
       </form>
        {% endfor %}
