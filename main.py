@@ -28,6 +28,7 @@ import base64
 import os.path
 import base64
 from email.message import EmailMessage
+from encode_and_remove_tag import cleanhtml
 
 import google.auth
 from google.auth.transport.requests import Request
@@ -625,7 +626,6 @@ def customertable():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
-    from encode_and_remove_tag import cleanhtml
     clean_res = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in res]
     conn.close()
     return render_template('tables/customertable.html', users=clean_res)
@@ -636,9 +636,8 @@ def stafftable():
     conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
-    conn.close()
     res = cursor.fetchall()
-    from encode_and_remove_tag import cleanhtml
+    conn.close()
     clean_res = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in res]
     return render_template('tables/stafftable.html', users=clean_res)
 
