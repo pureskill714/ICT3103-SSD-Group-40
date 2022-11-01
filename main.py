@@ -337,6 +337,23 @@ def encode(input):
     except UnicodeDecodeError:
         return None
 
+def check_session(username, session_ID):
+    username = encode(username)
+    session_ID = encode(session_ID)
+    conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+    cursor = conn.cursor()
+    cursor.execute('EXEC check_session %s, %s', username, session_ID)
+
+    res = cursor.fetchone()[0]
+    conn.close()
+    
+    if res is not None:
+        return
+    else:
+        logout_user()  # log the user out
+        session.clear()  # Ensure session is cleared
+        session.pop('username', None)  # Remove session after user has logout
+    return
 
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 @rbac.allow(['anonymous'], methods = ['GET', 'POST'])
@@ -678,7 +695,7 @@ def bookingtable():
     conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     User_UUID = 'DD542958-2979-4B20-99CE-615683E7027A'
-    cursor.execute("get_my_bookings  %s", User_UUID)
+    cursor.execute("EXEC get_my_bookings  %s", User_UUID)
     bookings = cursor.fetchall()
     conn.close()
     return render_template('tables/bookingtable.html', bookings=bookings)
