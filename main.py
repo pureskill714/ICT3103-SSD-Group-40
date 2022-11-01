@@ -3,18 +3,18 @@ from __future__ import print_function  # not sure if can remove this
 
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session, g, current_app
-from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
-from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session
+from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, \
-    DateField, TelField
+    DateField
 from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired, EqualTo
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect, CSRFError
 
 import pymssql
 import datetime
+import re
 from datetime import date, timedelta
 from itsdangerous import URLSafeTimedSerializer
 
@@ -29,7 +29,6 @@ import os.path
 import base64
 from email.message import EmailMessage
 
-import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -133,6 +132,18 @@ def gmail_send_message(otp, emailadd):
         send_message = None
     return send_message
 
+def encode(input):
+    # Function that checks if the user inputs can be encoded and decoded to and from utf-8
+    # Can help to prevent buffer overflow/code injection/
+    try:
+        return input.encode('utf-8', 'strict').decode('utf-8', 'strict')
+    except UnicodeDecodeError:
+        return None
+
+def cleanhtml(raw_html):
+    CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
+    cleantext = re.sub(CLEANR, '', raw_html)
+    return cleantext
 
 # Handling the login validation for Customers
 login_manager = LoginManager()  # Allow our app and flask login to work together
@@ -188,7 +199,9 @@ class RegisterForm(FlaskForm):
 
     # For users to confirm password
     password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
-                                                                           validators.Length(min=8, max=32)])
+                                                                           validators.Length(min=8, max=32),
+                                                                           validators.EqualTo('password_confirm',
+                                                                              message='Passwords must match,Please try again')])
 
     # For users to enter their contact number
     contact = IntegerField('Contact Number', validators=[InputRequired()])
@@ -297,7 +310,9 @@ class forgotPasswordEmailForm(FlaskForm):
     submit = SubmitField('Reset password')
 
 class newPasswordForm(FlaskForm):
-    password = PasswordField('New Password', validators=[DataRequired(), Length(min=8, max=64)])
+    password = PasswordField('New Password',
+                             validators=[DataRequired(), Length(min=8, max=64),
+                                          EqualTo('password2', message='Passwords must match')])
     password2 = PasswordField('Confirm your new Password',
                               validators=[DataRequired(), Length(min=8, max=64),
                                           EqualTo('password', message='Passwords must match')])
@@ -305,7 +320,52 @@ class newPasswordForm(FlaskForm):
 class ApproveBooking(FlaskForm):
     approveButton = SubmitField('Approve')
 
-# App routes help to redirect to different pages of the website
+class EditProfileForm(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField('First Name', validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last nameaddress
+    lastname = StringField('Last Name', validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+
+    # For users to input their email
+    email = EmailField('Email', validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+
+    # For users to choose a username
+    username = StringField(render_kw={'disabled': True})
+    country = StringField(validators=[Length(max=128)])
+    city = StringField(validators=[Length(max=128)])
+    address = StringField(validators=[Length(max=255)])
+    dob = DateField("Date of Brith", validators=[validators.Optional()])
+
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                           validators.Length(min=8, max=64)])
+
+
+    # For users to enter their contact number
+    contact = IntegerField('Contact Number', validators=[InputRequired()])
+
+    submit = SubmitField("Save changes")  # Register button once they are done
+
+class ChangePasswordForm(FlaskForm):
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                                   validators.Length(min=8, max=64)])
+
+    # For users to confirm password
+    password2 = PasswordField(label='New Passowrd', validators=[InputRequired(),
+                                                                validators.Length(min=8, max=64),
+                                                                validators.EqualTo('password_confirm2',
+                                                                                   message='Passwords must match, Please try again')])
+    # For users to confirm password
+    password_confirm2 = PasswordField(label='Confirm New Password', validators=[InputRequired(),
+                                                                                validators.Length(min=8, max=64),
+                                                                                validators.EqualTo('password2',
+                                                                                                   message='Passwords must match, Please try again')])
+    submitp = SubmitField("Save")  # Register button once they are done
+
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
@@ -323,16 +383,6 @@ def home():
         resp = app.make_response(render_template('index.html'))
         #resp.set_cookie('username', expires=0)  # to set expiry time of cookie to 0 after user logout
         return resp
-
-
-def encode(input):
-    # Function that checks if the user inputs can be encoded and decoded to and from utf-8
-    # Can help to prevent buffer overflow/code injection/
-    try:
-        return input.encode('utf-8', 'strict').decode('utf-8', 'strict')
-    except UnicodeDecodeError:
-        return None
-
 
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 def login():
@@ -499,7 +549,7 @@ def forgetPassword():
         result = cursor.fetchone()
 
         conn.close()
-        flash(f'Password reset instructions sent to {form.email.data}', 'success')
+        flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
 
         if(result[0] == 1):
             #Email of the user found
