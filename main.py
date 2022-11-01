@@ -377,6 +377,7 @@ def home():
     try:
         res = check_session(session['username'], session['Session_ID'])
     except:
+        #User is not logged in
         res = '00'
     if(res[1] == 'Customer'):
         return redirect(url_for('customerdashboard'))
@@ -444,6 +445,7 @@ def login():
         if user_email is not None:  # Login was successful
             session['username'] = username
             generated = generateOTP()
+            print(generated)
             gmail_send_message(generated, user_email)
             # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             return redirect(url_for('mfa'))
@@ -532,7 +534,7 @@ def managerdashboard():
 # @login_required  # ensure is logged then, only then can log out
 def logout():
     try:
-        res = check_session(session['username'], session['Session_ID'])
+        check_session(session['username'], session['Session_ID'])
     except:
         return render_template('403.html'), 403
     logout_user()  # log the user out
@@ -579,8 +581,6 @@ def forgetPassword():
             #email of the user not found, create log with IP here
             ip_addr = request.remote_addr
             pass
-            
-        # return redirect(url_for('forgetPassword'))
 
     return render_template('forgetpassword.html', form=form)
 
@@ -788,15 +788,26 @@ def deleteBookingConfirm(id):
         flash("Error occured, you cannot cancel any bookings within 7 days")
         return redirect(url_for('cancelBooking'))
     
-
+    
 @app.route('/bookingtable', methods=['GET', 'POST'])
 def bookingtable():
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
-    cursor = conn.cursor()
-    User_UUID = 'DD542958-2979-4B20-99CE-615683E7027A'
-    cursor.execute("EXEC get_my_bookings  %s", User_UUID)
-    bookings = cursor.fetchall()
-    conn.close()
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] == 'Customer'):
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        cursor = conn.cursor()
+        User_UUID = res[0]
+        cursor.execute("EXEC get_my_bookings %s", User_UUID)
+        bookings = cursor.fetchall()
+        conn.close()
+    elif(res[1] == 'Staff'):
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        cursor = conn.cursor()
+        cursor.execute("EXEC get_bookings")
+        bookings = cursor.fetchall()
+        conn.close()
+    else: 
+        return render_template('403.html'), 403
+
     clean_bookings = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in bookings]
     return render_template('tables/bookingtable.html', bookings=clean_bookings)
 
@@ -832,7 +843,6 @@ def staffUpdateSearch():
     if(res[1] != 'Manager'):
         return render_template('403.html'), 403
     return render_template('staffCRUD/staff_update_search.html')
-
 
 @app.route('/staffupdatevalue', methods=['GET', 'POST'])
 def staffUpdateValue():
@@ -882,6 +892,9 @@ def staffUpdateSubmit():
 @app.route("/viewProfile", methods=['GET'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def viewProfile():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] == 'Customer' or res[1] == 'Staff' or res[1] == 'Manager'):
+        return render_template('403.html'), 403
     editProfileForm = EditProfileForm()
     changePasswordForm = ChangePasswordForm()
     if "username" in session:
@@ -900,11 +913,15 @@ def viewProfile():
 
 @app.route('/editprofile', methods=['POST'])
 def editProfile():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] == 'Customer' or res[1] == 'Staff' or res[1] != 'Manager'):
+        return render_template('403.html'), 403
     editProfileForm = EditProfileForm()
     changePasswordForm = ChangePasswordForm()
-    if "username" in session:
+    try:
+        res = check_session(session['username'], session['Session_ID'])
         username = session["username"]
-    else:
+    except:
         return redirect(url_for('timeout'))
     
     if editProfileForm.validate_on_submit():
@@ -935,12 +952,16 @@ def editProfile():
 
 @app.route('/changepassword', methods=['POST'])
 def changepassword():
+    res = check_session(session['username'], session['Session_ID'])
+    if(res[1] == 'Customer' or res[1] == 'Staff' or res[1] == 'Manager'):
+        return render_template('403.html'), 403
     editProfileForm = EditProfileForm()
     changePasswordForm = ChangePasswordForm()
     if "username" in session:
         username = session["username"]
     else:
         return redirect(url_for('timeout'))
+
     conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
@@ -957,6 +978,7 @@ def changepassword():
             flash("Password changed successfully", 'success')
         else:
             flash("Current password incorrect. Please try again", "danger")
+        
         conn.close()
         redirect(url_for('viewProfile'))
 
@@ -1070,27 +1092,30 @@ def booking():
         elif room_type == "Deluxe":
             room_type = 3
         else:
+            #Default value + logging
             room_type = 1
 
         # Send the data to database
-
-        res = 0
-        cursor.execute("EXEC setup_booking 1, %d, %s, %s, %s", (room_type, "", start_date, end_date))
-        res = cursor.fetchone()[0]
+        cursor.execute("EXEC setup_booking %s, %d, %s, %s, %s", (res[0], room_type, "", start_date, end_date))
         
+        try:
+            res = cursor.fetchone()[0]
+        except:
+            res = 3
+
         conn.commit()
         conn.close()
-        if res == 1:  # Booking pending approval
+        if res == 1:  
+            # Booking pending approval
             return render_template('bookings/bookingsuccess.html')
         elif res == 2:
+            # Database detected that there was no such room available during the date range provided
             flash("Booking failed. No rooms of this type available during date range. Or input error detected")
         else:
+            #For logging purposes
             flash("Booking failed. No rooms of this type available during date range. Or input error detected")
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
-
-
-
 
 
 if __name__ == '__main__':
