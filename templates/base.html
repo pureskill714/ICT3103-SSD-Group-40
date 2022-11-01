@@ -62,10 +62,19 @@ h1, h2, h3 {
         <div class="container">
                 <h3>The Cozy Inn Hotel</h3>
                 <ul>
+                    {% if username %}
+                    <li><a href="{{url_for('customerdashboard')}}">Home</a></li>
+                    <li><a href="{{url_for('booking')}}">Book Room</a></li>
+                    <li><a href="{{url_for('ViewReservation')}}">View My Reservation</a></li>
+                    <li><a href="{{url_for('logout')}}">Cancel Bookings</a></li>
+                    <li><a href="{{url_for('viewProfile')}}">Profile</a></li>
+                    <li><a href="{{url_for('logout')}}">Log Out</a></li>
+                    {% else %}
                     <li><a href="{{url_for('home')}}">Home</a></li>
                     <li><a href="{{url_for('register')}}">Register</a></li>
                     <li><a href="{{url_for('login')}}">Login</a></li>
                     <li><a href="{{url_for('home')}}">Contact Us</a></li>
+                    {% endif %}
                 </ul>
               </div>
             </nav>

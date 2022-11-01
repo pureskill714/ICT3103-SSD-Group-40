@@ -1,94 +1,291 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/core@2.0.0/dist/zxcvbn-ts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/language-common@2.0.0/dist/zxcvbn-ts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/language-en@2.0.0/dist/zxcvbn-ts.js"></script>
  <!-- Account details card-->
 <div class="container h-100">
-            <div class="card mb-4">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
+
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
+                <div class="card mb-4">
                 <div class="card-header">Account Details</div>
                 <div class="card-body">
-                    <form>
+                    <form action="{{ url_for('editProfile') }}" method="post">
+                        {{ editProfileForm.csrf_token }}
                         <!-- Form Group (username)-->
                         <div class="mb-3">
-                            <label class="small mb-1" for="inputUsername">Username</label>
-                            <input class="form-control" id="inputUsername" type="text" placeholder="Enter your username" value="">
+                            {{ editProfileForm.username.label(class_="small mb-1") }}
+                            {{ editProfileForm.username(class_="form-control" + (" is-invalid" if editProfileForm.username.errors else "") + ""
+                            , placeholder="Enter your username"
+                            , value=username) }}
+
+                        {% for error in editProfileForm.username.errors %}
+                        <span style="color: red;">{{ error }}</span>
+                        {% endfor %}
                         </div>
                         <!-- Form Row-->
                         <div class="row gx-3 mb-3">
                             <!-- Form Group (first name)-->
                             <div class="col-md-6">
-                                <label class="small mb-1" for="inputFirstName">First name</label>
-                                <input class="form-control" id="inputFirstName" type="text" placeholder="Enter your first name" value="">
+                                {{ editProfileForm.firstname.label(class_="small mb-1") }}
+                                {{ editProfileForm.firstname(class_="form-control" + (" is-invalid" if
+                                editProfileForm.firstname.errors else "") + "",
+                                placeholder="Enter your first name",
+                                value=user[0]) }}
+                                {% for error in editProfileForm.firstname.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
                             </div>
                             <!-- Form Group (last name)-->
                             <div class="col-md-6">
-                                <label class="small mb-1" for="inputLastName">Last name</label>
-                                <input class="form-control" id="inputLastName" type="text" placeholder="Enter your last name" value="">
+                            {{ editProfileForm.lastname.label(class_="small mb-1") }}
+                            {{ editProfileForm.lastname(class_="form-control" + (" is-invalid" if
+                                editProfileForm.lastname.errors else "") + "",
+                                placeholder="Enter your last name",
+                                value=user[1]) }}
+                            {% for error in editProfileForm.lastname.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
                             </div>
                         </div>
                         <!-- Form Row        -->
                         <div class="row gx-3 mb-3">
-                            <!-- Form Group (organization name)-->
+                            <!-- Form Group (country)-->
                             <div class="col-md-6">
-                                <label class="small mb-1" for="inputOrgName">Country</label>
-                                <input class="form-control" id="inputOrgName" type="text" placeholder="Enter your Country" value="">
+                            {{ editProfileForm.country.label(class_="small mb-1") }}
+                            {{ editProfileForm.country(class_="form-control" + (" is-invalid" if
+                                editProfileForm.country.errors else "") + "",
+                                placeholder="Enter your country",
+                                value= ("" if user[5] == None else user[5])) }}
+                                {% for error in editProfileForm.country.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+
                             </div>
-                            <!-- Form Group (location)-->
+                            <!-- Form Group (city)-->
                             <div class="col-md-6">
-                                <label class="small mb-1" for="inputLocation">City</label>
-                                <input class="form-control" id="inputLocation" type="text" placeholder="Enter your City" value="">
+                            {{ editProfileForm.city.label(class_="small mb-1") }}
+                            {{ editProfileForm.city(class_="form-control" + (" is-invalid" if
+                                editProfileForm.city.errors else "") + "",
+                                placeholder="Enter your city",
+                                value= ("" if user[6] == None else user[6])) }}
+                            {% for error in editProfileForm.city.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+
                             </div>
                         </div>
                         <!-- Form Group (email address)-->
                         <div class="mb-3">
-                            <label class="small mb-1" for="inputEmailAddress">Email address</label>
-                            <input class="form-control" id="inputEmailAddress" type="email" placeholder="Enter your email address" value="">
+                            {{ editProfileForm.email.label(class_="small mb-1") }}
+                            {{ editProfileForm.email(class_="form-control" + (" is-invalid" if
+                            editProfileForm.email.errors else "") + "",
+                            placeholder="Enter your email address",
+                            value= ("" if user[2] == None else user[2])) }}
+                            {% for error in editProfileForm.email.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+
                         </div>
                       <div class="mb-3">
-                            <label class="small mb-1" for="inputAddress">Address</label>
-                            <input class="form-control" id="inputAddress" type="addree" placeholder="Enter your address" value="">
+                            {{ editProfileForm.address.label(class_="small mb-1") }}
+                            {{ editProfileForm.address(class_="form-control" + (" is-invalid" if
+                          editProfileForm.address.errors else "") + "",
+                          placeholder="Enter your address",
+                          value= ("" if user[5] == None else user[3])) }}
+                            {% for error in editProfileForm.address.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+
                         </div>
 
                         <!-- Form Row-->
                         <div class="row gx-3 mb-3">
                             <!-- Form Group (phone number)-->
                             <div class="col-md-6">
-                                <label class="small mb-1" for="inputPhone">Phone number</label>
-                                <input class="form-control" id="inputPhone" type="tel" placeholder="Enter your phone number" value="">
+                            {{ editProfileForm.contact.label(class_="small mb-1") }}
+                            {{ editProfileForm.contact(class_="form-control" + (" is-invalid" if
+                                editProfileForm.contact.errors else "") + "",
+                                placeholder="Enter your phone number",
+                                value= ("" if user[7] == None else user[7])) }}
+                            {% for error in editProfileForm.contact.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+
                             </div>
                             <!-- Form Group (birthday)-->
                             <div class="col-md-6">
-                                <label class="small mb-1" for="inputBirthday">Date of Birth</label>
-                                <input class="form-control" id="inputBirthday" type="text" name="birthday" placeholder="Enter your date of birth" value="">
+                            {{ editProfileForm.dob.label(class_="small mb-1") }}
+                            {{ editProfileForm.dob(class_="form-control" + (" is-invalid" if
+                                editProfileForm.dob.errors else "") + "",
+                                placeholder="Enter your date of birth",
+                                value= ("" if user[4] == None else user[4])) }}
+                            {% for error in editProfileForm.dob.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+
                             </div>
+
                         </div>
+                        <div class="mb-3">
+                            {{ editProfileForm.password.label(class_="small mb-1") }}
+                            {{ editProfileForm.password(class_="form-control" + (" is-invalid" if
+                                editProfileForm.password.errors else "") + "",
+                                placeholder="Enter your current password") }}
+                            {% for error in editProfileForm.password.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}
+
+                            </div>
+
                         <!-- Save changes button-->
-                        <button class="btn btn-primary" type="button">Save changes</button>
+                        {{ editProfileForm.submit(class="btn btn-primary") }}
                     </form>
                 </div>
             </div>
                   <div class="card mb-4">
                     <div class="card-header">Change Password</div>
                     <div class="card-body">
-                        <form>
+                        <form action="{{ url_for('changepassword') }}" method="post">
+                            {{ changePasswordForm.csrf_token }}
                             <!-- Form Group (current password)-->
                             <div class="mb-3">
-                                <label class="small mb-1" for="currentPassword">Current Password</label>
-                                <input class="form-control" id="currentPassword" type="password" placeholder="Enter current password">
-                            </div>
+                            {{ changePasswordForm.password.label(class_="small mb-1") }}
+                            {{ changePasswordForm.password(class_="form-control" + (" is-invalid" if
+                                changePasswordForm.password.errors else "") + "",
+                                placeholder="Enter your current password") }}
+                            {% for error in changePasswordForm.password.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}                            </div>
                             <!-- Form Group (new password)-->
                             <div class="mb-3">
-                                <label class="small mb-1" for="newPassword">New Password</label>
-                                <input class="form-control" id="newPassword" type="password" placeholder="Enter new password">
-                            </div>
+                            {{ changePasswordForm.password2.label(class_="small mb-1") }}
+                            {{ changePasswordForm.password2(class_="form-control" + (" is-invalid" if
+                                changePasswordForm.password2.errors else "") + "",
+                                placeholder="Enter your new password") }}
+                                <div id="password-bar" class="row d-none">
+                                        <p><span></span></p>
+                                        <div class="col-6">
+                                            <div class="progress">
+                                            <div id="password-strength"
+                                                class="progress-bar"
+                                                role="progressbar"
+                                                 aria-valuenow="0"
+                                                aria-valuemin="0"
+                                                aria-valuemax="10"
+                                                style="width:0%">
+                                            </div>
+                                        </div>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <small class="form-text text-muted">
+                                            Password strength:
+                                            </small>
+                                            <p id="password-strength-text" class="d-inline font-weight-bold"></p>
+
+                                        </div>
+                                    </div>
+                            {% for error in changePasswordForm.password2.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}                                    </div>
                             <!-- Form Group (confirm password)-->
                             <div class="mb-3">
-                                <label class="small mb-1" for="confirmPassword">Confirm Password</label>
-                                <input class="form-control" id="confirmPassword" type="password" placeholder="Confirm new password">
-                            </div>
-                            <button class="btn btn-primary" type="button">Save</button>
+                            {{ changePasswordForm.password_confirm2.label(class_="small mb-1") }}
+                            {{ changePasswordForm.password_confirm2(class_="form-control" + (" is-invalid" if
+                                changePasswordForm.password_confirm2.errors else "") + "",
+                                placeholder="Confirm your new password") }}
+                                <div id="password-bar2" class="row d-none">
+                                        <p><span></span></p>
+                                        <div class="col-6">
+                                            <div class="progress">
+                                            <div id="password-strength2"
+                                                class="progress-bar"
+                                                role="progressbar"
+                                                 aria-valuenow="0"
+                                                aria-valuemin="0"
+                                                aria-valuemax="10"
+                                                style="width:0%">
+                                            </div>
+                                        </div>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <small class="form-text text-muted">
+                                            Password strength:
+                                            </small>
+                                            <p id="password-strength-text2" class="d-inline font-weight-bold"></p>
+                                        </div>
+                                    </div>
+                            {% for error in changePasswordForm.password_confirm2.errors %}
+                            <span style="color: red;">{{ error }}</span>
+                            {% endfor %}                            </div>
+                            {{ changePasswordForm.submitp(class="btn btn-primary") }}
                         </form>
                     </div>
                 </div>
 
 </div>
+<script>
+    let password = document.getElementById('password2');
+    let passwordBar = document.getElementById('password-bar');
+    let passwordStrength = document.getElementById("password-strength");
+    let text = document.getElementById('password-strength-text');
+    password.addEventListener("input", function(){
+    let pass = document.getElementById("password2").value;
+    checkStrength(pass, passwordBar, passwordStrength, text);
+    });
+    let password2 = document.getElementById('password_confirm2');
+    let passwordBar2 = document.getElementById('password-bar2');
+    let passwordStrength2 = document.getElementById("password-strength2");
+    let text2 = document.getElementById('password-strength-text2');
+    password2.addEventListener("input", function(){
+    let pass2 = document.getElementById("password_confirm2").value;
+    checkStrength(pass2, passwordBar2, passwordStrength2, text2);
+    });
+
+
+function checkStrength(password, passwordBar, passwordStrength, text) {
+    const strength = zxcvbnts.core.zxcvbn(password).score;
+    // console.log(strength)
+    // If value is less than 2
+    if (password.length > 0){
+        passwordBar.classList.remove('d-none')
+    } else {
+        passwordBar.classList.add('d-none')
+    }
+    if (strength <= 1) {
+        passwordStrength.classList.remove('bg-warning');
+        passwordStrength.classList.remove('bg-success');
+        passwordStrength.classList.add('bg-danger');
+        passwordStrength.style = 'width: 25%';
+        text.innerHTML = "Bad";
+    } else if (strength == 2) {
+        passwordStrength.classList.remove('bg-success');
+        passwordStrength.classList.remove('bg-danger');
+        passwordStrength.classList.add('bg-warning');
+        passwordStrength.style = 'width: 50%';
+        text.innerHTML = "Weak";
+    } else if (strength == 3) {
+        passwordStrength.classList.remove('bg-warning');
+        passwordStrength.classList.remove('bg-danger');
+        passwordStrength.classList.add('bg-success');
+        passwordStrength.style = 'width: 75%';
+        text.innerHTML = "Good";
+    } else if (strength == 4) {
+        passwordStrength.classList.remove('bg-warning');
+        passwordStrength.classList.remove('bg-danger');
+        passwordStrength.classList.add('bg-success');
+        passwordStrength.style = 'width: 100%';
+        text.innerHTML = "Strong";
+    }
+}
+</script>
 {% endblock %}

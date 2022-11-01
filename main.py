@@ -169,12 +169,59 @@ class RegisterForm(FlaskForm):
 
     # For users to confirm password
     password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
-                                                                           validators.Length(min=8, max=32)])
+                                                           validators.EqualTo('password',
+                                                                              message='Passwords must match, Please try again')])
 
     # For users to enter their contact number
     contact = IntegerField('Contact Number', validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
+
+class EditProfileForm(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField('First Name', validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last nameaddress
+    lastname = StringField('Last Name', validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+
+    # For users to input their email
+    email = EmailField('Email', validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+
+    # For users to choose a username
+    username = StringField(render_kw={'disabled': True})
+    country = StringField(validators=[Length(max=128)])
+    city = StringField(validators=[Length(max=128)])
+    address = StringField(validators=[Length(max=255)])
+    dob = DateField("Date of Brith", validators=[validators.Optional()])
+
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                           validators.Length(min=8, max=64)])
+
+
+    # For users to enter their contact number
+    contact = IntegerField('Contact Number', validators=[InputRequired()])
+
+    submit = SubmitField("Save changes")  # Register button once they are done
+
+class ChangePasswordForm(FlaskForm):
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                                   validators.Length(min=8, max=64)])
+
+    # For users to confirm password
+    password2 = PasswordField(label='New Passowrd', validators=[InputRequired(),
+                                                                validators.Length(min=8, max=64),
+                                                                validators.EqualTo('password_confirm2',
+                                                                                   message='Passwords must match, Please try again')])
+    # For users to confirm password
+    password_confirm2 = PasswordField(label='Confirm New Password', validators=[InputRequired(),
+                                                                                validators.Length(min=8, max=64),
+                                                                                validators.EqualTo('password2',
+                                                                                                   message='Passwords must match, Please try again')])
+    submitp = SubmitField("Save")  # Register button once they are done
 
 
 class LoginForm(FlaskForm):
@@ -192,7 +239,7 @@ class LoginForm(FlaskForm):
 
 class MfaForm(FlaskForm):
     # For users to enter otp
-    mfa = IntegerField(validators=[InputRequired()])
+    mfa = StringField(validators=[InputRequired()])
 
 
 class StaffRegisterForm(FlaskForm):
@@ -240,7 +287,9 @@ class forgotPasswordEmailForm(FlaskForm):
     submit = SubmitField('Reset password')
 
 class newPasswordForm(FlaskForm):
-    password = PasswordField('New Password', validators=[DataRequired(), Length(min=8, max=64)])
+    password = PasswordField('New Password',
+                             validators=[DataRequired(), Length(min=8, max=64),
+                                          EqualTo('password2', message='Passwords must match')])
     password2 = PasswordField('Confirm your new Password',
                               validators=[DataRequired(), Length(min=8, max=64),
                                           EqualTo('password', message='Passwords must match')])
@@ -248,7 +297,6 @@ class newPasswordForm(FlaskForm):
 class ApproveBooking(FlaskForm):
     approveButton = SubmitField('Approve Booking')
 
-# App routes help to redirect to different pages of the website
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
 def home():
@@ -270,7 +318,7 @@ def encode(input):
 def check_session(username, session_ID):
     username = encode(username)
     session_ID = encode(session_ID)
-    conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+    conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
     cursor = conn.cursor()
     cursor.execute('EXEC check_session %s, %s', username, session_ID)
 
@@ -413,13 +461,12 @@ def forgetPassword():
     if form.validate_on_submit():
         email = encode(form.email.data)
 
-        conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+        conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
         cursor = conn.cursor()
         cursor.execute('EXEC check_email %s', form.email.data)
         result = cursor.fetchone()
-
         conn.close()
-        flash(f'Password reset instructions sent to {form.email.data}', 'success')
+        flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
 
         if(result[0] == 1):
             #Email of the user found
@@ -464,7 +511,7 @@ def reset_with_token(token):
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
 
-        conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+        conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
         cursor = conn.cursor()
         cursor.execute('EXEC update_password %s, %s', (email, hashed_password))
         conn.commit()
@@ -496,7 +543,7 @@ def register():
         # Verifies that there are no issues with encoding
         if passwordInput is None or username is None or email is None or fname is None or lname is None:
             flash("Please check your user inputs again.")
-            return render_template('newRegister.html', form=form)
+            return render_template('register.html', form=form)
 
         hashed_password = bcrypt.generate_password_hash(passwordInput)
         cursor = conn.cursor()
@@ -578,9 +625,10 @@ def customertable():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
-
+    from encode_and_remove_tag import cleanhtml
+    clean_res = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in res]
     conn.close()
-    return render_template('tables/customertable.html', users=res)
+    return render_template('tables/customertable.html', users=clean_res)
 
 
 @app.route('/stafftable')
@@ -588,10 +636,11 @@ def stafftable():
     conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
-    res = cursor.fetchall()
-
     conn.close()
-    return render_template('tables/stafftable.html', users=res)
+    res = cursor.fetchall()
+    from encode_and_remove_tag import cleanhtml
+    clean_res = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in res]
+    return render_template('tables/stafftable.html', users=clean_res)
 
 
 @app.route('/pendingbookingtable', methods=['GET', 'POST'])
@@ -675,16 +724,93 @@ def staffUpdateSubmit():
     conn.close()
     return render_template('staffCRUD/staff_update_sucess.html')
 
-@app.route("/editProfile", methods=['GET', 'POST'])
+@app.route("/viewProfile", methods=['GET'])
 # @login_required  # ensure is logged then, only then can access the dashboard
+def viewProfile():
+    editProfileForm = EditProfileForm()
+    changePasswordForm = ChangePasswordForm()
+    if "username" in session:
+        username = session["username"]
+    else:
+        return redirect(url_for('timeout'))
+
+    conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
+    cursor = conn.cursor()
+    cursor.execute("EXEC user_details %s", "2001476")
+    user = cursor.fetchone()
+    conn.close()
+
+    return render_template('customers/editProfile.html', editProfileForm=editProfileForm,
+                           changePasswordForm=changePasswordForm, user=user, username=username)
+
+@app.route('/editprofile', methods=['POST'])
 def editProfile():
-    # if "username" in session:
-    #     username = session["username"]
-    return render_template('customers/editProfile.html')
-    # else:
-    #     return redirect(url_for('timeout'))
+    editProfileForm = EditProfileForm()
+    changePasswordForm = ChangePasswordForm()
+    if "username" in session:
+        username = session["username"]
+    else:
+        return redirect(url_for('timeout'))
+    if editProfileForm.validate_on_submit():
+        passwordInput = encode(editProfileForm.password.data)
+        conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
+        cursor = conn.cursor()
+        cursor.execute('EXEC retrieve_password @username = %s', username)
+        passwordHash = cursor.fetchone()
+        # Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
+        if bcrypt.check_password_hash(passwordHash[0], passwordInput):
+            cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d",
+                           (username, editProfileForm.email.data, editProfileForm.firstname.data,
+                            editProfileForm.lastname.data,
+                            editProfileForm.address.data, editProfileForm.dob.data, editProfileForm.country.data,
+                            editProfileForm.city.data, editProfileForm.contact.data))
+            conn.commit()
+            conn.close()
+            flash("Edit profile successfully", 'success')
 
+        else:
+            flash("Password incorrect. Please try again", "danger")
 
+        redirect(url_for('viewProfile'))
+    conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
+    cursor = conn.cursor()
+    cursor.execute("EXEC user_details %s", username)
+    user = cursor.fetchone()
+    conn.close()
+    return render_template('customers/editProfile.html', editProfileForm=editProfileForm,
+                           changePasswordForm=changePasswordForm, user=user, username=username)
+
+@app.route('/changepassword', methods=['POST'])
+def changepassword():
+    editProfileForm = EditProfileForm()
+    changePasswordForm = ChangePasswordForm()
+    if "username" in session:
+        username = session["username"]
+    else:
+        return redirect(url_for('timeout'))
+    conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
+    cursor = conn.cursor()
+    cursor.execute("EXEC user_details %s", username)
+    user = cursor.fetchone()
+    if changePasswordForm.validate_on_submit():
+        passwordInput = encode(changePasswordForm.password.data)
+        cursor.execute('EXEC retrieve_password @username = %s', username)
+        passwordHash = cursor.fetchone()
+        # Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
+        if bcrypt.check_password_hash(passwordHash[0], passwordInput):
+            hashed_password = bcrypt.generate_password_hash(changePasswordForm.password2.data)
+            cursor.execute('EXEC update_password %s, %s', (user[2], hashed_password))
+            conn.commit()
+
+            flash("Password changed successfully", 'success')
+
+        else:
+            flash("Current password incorrect. Please try again", "danger")
+        conn.close()
+        redirect(url_for('viewProfile'))
+    conn.close()
+    return render_template('customers/editProfile.html', editProfileForm=editProfileForm,
+                           changePasswordForm=changePasswordForm, user=user, username=username)
 @app.route('/registersuccess')
 @login_required  # ensure is logged then, only then can log out
 def registersuccess():

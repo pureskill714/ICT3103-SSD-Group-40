@@ -165,7 +165,7 @@
 
 function checkStrength(password, passwordBar, passwordStrength, text) {
     const strength = zxcvbnts.core.zxcvbn(password).score;
-    console.log(strength)
+    // console.log(strength)
     // If value is less than 2
     if (password.length > 0){
         passwordBar.classList.remove('d-none')
