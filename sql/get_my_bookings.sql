@@ -5,7 +5,7 @@ CREATE PROCEDURE get_my_bookings
 @UUID VARCHAR(64)
 AS
 (
-SELECT Room_No, Room_Type, Start_Date, End_Date, Booking_Status, Bookings.Created_At, Booking_Details
+SELECT Room_No, Room_Type, Start_Date, End_Date, Booking_Status, Bookings.Created_At, Booking_Details, Booking_UUID
 FROM Bookings 
 
 JOIN Users ON Bookings.User_ID = Users.User_ID

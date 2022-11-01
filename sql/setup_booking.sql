@@ -2,7 +2,7 @@ DROP PROCEDURE IF EXISTS setup_booking
 GO
 
 CREATE PROCEDURE setup_booking (
-@user_id INT,
+@user_UUID VARCHAR(64),
 @room_type INT,
 @booking_details VARCHAR(255),
 @start_date DATE,
@@ -14,12 +14,14 @@ BEGIN
 	SELECT Rooms.Room_Type_ID, Room_ID INTO #TempRooms FROM RoomTypes JOIN Rooms ON RoomTypes.Room_Type_ID = Rooms.Room_Type_ID WHERE Rooms.Room_Type_ID = @room_type
 	DECLARE @RoomID INT
 	DECLARE @return INT
+	DECLARE @user_id INT
 
 	IF EXISTS(SELECT * FROM #TempRooms) 
 	BEGIN
 		WHILE EXISTS(SELECT * FROM #TempRooms)
 		BEGIN
 			SELECT TOP 1 @RoomID = Room_ID FROM #TempRooms
+			SELECT TOP 1 @user_id = user_ID FROM Users WHERE User_UUID = CONVERT(UNIQUEIDENTIFIER, @user_UUID)
 
 			EXEC @return = [create_booking] @user_ID, @RoomID, @booking_details, @start_date, @end_date
 			IF @return = 1
@@ -40,7 +42,7 @@ GO
 
 
 DECLARE @return2 INT
-EXEC @return2 = [setup_booking] '1', '1', '', '2024-10-30', '2024-11-5' 
+EXEC @return2 = [setup_booking] '8FB418AC-8849-4DAA-A0EE-1ED8A35A8538', '3', '', '2024-10-30', '2024-11-5' 
 
 SELECT @return2
 

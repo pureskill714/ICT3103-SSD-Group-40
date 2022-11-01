@@ -8,12 +8,12 @@ AS
 BEGIN
 	UPDATE Bookings
 	SET Booking_Status = 'Approved'
-	WHERE Booking_UUID = @UUID AND Start_Date > GETDATE()
+	WHERE Booking_UUID = @UUID AND Start_Date > GETDATE() - 1
 END
 GO
 
-/*
-EXEC approve_bookings 'EEB5AF5F-CA60-4798-914E-BCC0EB9E5F2C'
-*/
+
+EXEC approve_bookings '933bbf53-b166-475e-9fcb-59faa3e84b01'
+
 
 SELECT * FROM Bookings

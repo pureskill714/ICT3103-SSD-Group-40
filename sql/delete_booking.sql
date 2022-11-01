@@ -1,0 +1,22 @@
+DROP PROCEDURE IF EXISTS delete_bookings
+GO
+
+CREATE PROCEDURE delete_bookings
+@Booking_UUID VARCHAR(64),
+@User_UUID VARCHAR(64)
+AS
+
+BEGIN
+	DELETE Bookings
+	FROM Bookings
+	JOIN Users ON Bookings.User_ID = Users.User_ID
+	WHERE Booking_UUID = @Booking_UUID AND Start_Date > GETDATE() + 7 AND User_UUID = @User_UUID
+	SELECT @@ROWCOUNT
+END
+GO
+
+EXEC delete_bookings 'B6AEBC4E-BC88-47F7-AC03-4282DD9A7D25', 'C524C961-FADB-477A-A9A4-EFFB0491A9AC'
+
+SELECT * FROM Bookings
+SELECT * FROM Users
+SELECT * FROM Sessions
