@@ -651,6 +651,7 @@ def pendingbookingtable():
     cursor.execute(get_bookings)
     bookings = list(cursor.fetchall())
     conn.close()
+    # clean_bookings = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in bookings]
     return render_template('tables/pendingbookingtable.html', bookings=bookings, approve=approve)
 
 @app.route('/bookingtable', methods=['GET', 'POST'])
@@ -661,7 +662,8 @@ def bookingtable():
     cursor.execute("EXEC get_my_bookings  %s", User_UUID)
     bookings = cursor.fetchall()
     conn.close()
-    return render_template('tables/bookingtable.html', bookings=bookings)
+    clean_bookings = [[(cleanhtml(j) if isinstance(j, str) else j) for j in i] for i in bookings]
+    return render_template('tables/bookingtable.html', bookings=clean_bookings)
 
 @app.route('/pendingbookingapprove/<string:id>', methods=['GET', 'POST'])
 def pendingBookingApprove(id):
@@ -735,7 +737,7 @@ def viewProfile():
 
     conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
     cursor = conn.cursor()
-    cursor.execute("EXEC user_details %s", "2001476")
+    cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
     conn.close()
 
