@@ -5,8 +5,10 @@ from __future__ import print_function  # not sure if can remove this
 # Dynamically pass variables into the URL
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, make_response, session, \
     get_flashed_messages
+from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy, \
+    get_flashed_messages
 from flask_sqlalchemy import SQLAlchemy  # to create db and an instance of sql Alchemy
-from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user, current_user
+from flask_login import UserMixin, UserMixin, LoginManager, login_required, login_user, logout_user, current_user
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, \
     DateField
@@ -30,6 +32,7 @@ import base64
 import os.path
 import base64
 from email.message import EmailMessage
+from encode_and_remove_tag import cleanhtml
 from encode_and_remove_tag import cleanhtml
 
 from google.auth.transport.requests import Request
@@ -198,7 +201,7 @@ class RegisterForm(FlaskForm):
     password = PasswordField(label='Password', validators=[InputRequired(),
                                                            validators.Length(min=8, max=64),
                                                            validators.EqualTo('password_confirm',
-                                                                              message='Passwords must match, Please try again')])
+                                                                              message='Passwords must match,  Please try again')])
 
     # For users to confirm password
     password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
@@ -211,6 +214,52 @@ class RegisterForm(FlaskForm):
     contact = IntegerField('Contact Number', validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
+
+class EditProfileForm(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField('First Name', validators=[InputRequired(),
+                                        Length(min=2, max=64)])
+    # For users to choose a last nameaddress
+    lastname = StringField('Last Name', validators=[InputRequired(),
+                                       Length(min=2, max=64)])
+
+    # For users to input their email
+    email = EmailField('Email', validators=[InputRequired("Please enter email address"),
+                                   Length(min=4, max=254), Email()])
+
+    # For users to choose a username
+    username = StringField(render_kw={'disabled': True})
+    country = StringField(validators=[Length(max=128)])
+    city = StringField(validators=[Length(max=128)])
+    address = StringField(validators=[Length(max=255)])
+    dob = DateField("Date of Brith", validators=[validators.Optional()])
+
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                           validators.Length(min=8, max=64)])
+
+
+    # For users to enter their contact number
+    contact = IntegerField('Contact Number', validators=[InputRequired()])
+
+    submit = SubmitField("Save changes")  # Register button once they are done
+
+class ChangePasswordForm(FlaskForm):
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                                   validators.Length(min=8, max=64)])
+
+    # For users to confirm password
+    password2 = PasswordField(label='New Password', validators=[InputRequired(),
+                                                                validators.Length(min=8, max=64),
+                                                                validators.EqualTo('password_confirm2',
+                                                                                   message='Passwords must match, Please try again')])
+    # For users to confirm password
+    password_confirm2 = PasswordField(label='Confirm New Password', validators=[InputRequired(),
+                                                                                validators.Length(min=8, max=64),
+                                                                                validators.EqualTo('password2',
+                                                                                                   message='Passwords must match, Please try again')])
+    submitp = SubmitField("Save")  # Register button once they are done
 
 class EditProfileForm(FlaskForm):
     # For users to choose a first name
