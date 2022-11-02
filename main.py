@@ -80,19 +80,6 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Strict',
 )
 
-
-# function to generate OTP
-def generateOTP():
-    # Declare a string variable, only digits in this case
-    string = '0123456789'
-    sixotp = ""
-    length = len(string)
-    for i in range(6):
-        sixotp += string[math.floor(random.random() * length)]
-
-    return sixotp
-
-
 def gmail_send_message(otp, emailadd):
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
@@ -500,9 +487,7 @@ def login():
 
         try:
             res = cursor.fetchone()
-            global user_email
             global UUID
-            global generated
 
             user_email = res[0]
             role_ID = res[1]
@@ -517,9 +502,14 @@ def login():
         conn.close()
         if user_email is not None:  # Login was successful
             session['username'] = username
-            generated = generateOTP()
-            print(generated)
-            gmail_send_message(generated, user_email)
+            
+            otpsecret = base64.b32encode(os.urandom(10)).decode('utf-8')
+            session['secret'] = otpsecret
+            totp = pyotp.TOTP(otpsecret)
+            
+            #hotp = pyotp.HOTP(otpsecret)
+
+            gmail_send_message(totp.now(), user_email)
             # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
             return redirect(url_for('mfa'))
         else:
@@ -532,12 +522,13 @@ def login():
 # @login_required  # ensure is logged then, only then can access the dashboard
 def mfa():
     form = MfaForm()
-
+    totp = pyotp.TOTP(session['secret'])
     # check if the user exists in the database
     if form.validate_on_submit():
-        if str(form.mfa.data) == generated:
+        #Valid window extends the validity to this many counter ticks before and after the current one
+        #Counter ticks are generally a few miliseconds long
+        if totp.verify(form.mfa.data, valid_window=1):
             session['User_ID'] = UUID
-
             Session_ID = os.urandom(16)
             session['Session_ID'] = Session_ID
 
@@ -657,7 +648,7 @@ def forgetPassword():
 @app.route('/forgetPassword/<token>', methods=["GET", "POST"])
 def reset_with_token(token):
     try:
-        email = ts.loads(token, salt="recover-key", max_age=60)
+        email = ts.loads(token, salt="recover-key", max_age=360)
         print(email)
     except:
         flash('The confirmation link is invalid or has expired.', 'danger')
