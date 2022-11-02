@@ -196,7 +196,7 @@ class RegisterForm(FlaskForm):
 
     # For users to input their email
     email = EmailField('Email', validators=[InputRequired("Please enter email address"),
-                                            Length(min=4, max=254), Email()])
+                                            Length(min=4, max=254), Email(check_deliverability=True)])
 
     # For users to choose a username
     username = StringField(validators=[InputRequired(),
@@ -208,9 +208,7 @@ class RegisterForm(FlaskForm):
     # For users to confirm password
     password_confirm = PasswordField(label='Password confirm', validators=[InputRequired(),
                                                                            validators.EqualTo('password',
-                                                                                              message='Passwords must match, Please try again'),
-                                                                           validators.EqualTo('password_confirm',
-                                                                                              message='Passwords must match,Please try again')])
+                                                                                              message='Passwords must match, Please try again')])
 
     # For users to enter their contact number
     contact = IntegerField('Contact Number', validators=[InputRequired()])
@@ -228,7 +226,7 @@ class EditProfileForm(FlaskForm):
 
     # For users to input their email
     email = EmailField('Email', validators=[InputRequired("Please enter email address"),
-                                            Length(min=4, max=254), Email()])
+                                            Length(min=4, max=254), Email(check_deliverability=True)])
 
     # For users to choose a username
     username = StringField(render_kw={'disabled': True})
@@ -368,7 +366,7 @@ class deleteBooking(FlaskForm):
 
 
 class forgotPasswordEmailForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(),
+    email = EmailField('Email', validators=[DataRequired(),
                                              Length(min=4, max=254), Email()])
     submit = SubmitField('Reset password')
 
