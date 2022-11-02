@@ -1,47 +1,31 @@
-from __future__ import print_function
-import base64
-import os.path
-from email.mime.text import MIMEText
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
+import re
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+from wtforms import ValidationError
 
-creds = None
-if os.path.exists('token.json'):
-    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-# If there are no (valid) credentials available, let the user log in.
-if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    else:
-        flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-        creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open('token.json', 'w') as token:
-        token.write(creds.to_json())
+CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
 
 
-service = build('gmail', 'v1', credentials=creds)
+def cleanhtml(raw_html):
+    cleantext = re.sub(CLEANR, '', raw_html)
+    return cleantext
 
 
-def create_message(sender, to, subject, message_text):
-    message = MIMEText(message_text, 'html')
-    message['to'] = to
-    message['from'] = sender
-    message['subject'] = subject
-    return {'raw': base64.urlsafe_b64encode(message.as_string().encode()).decode()}
+def password_policy_check(form, field):
+    # Convert string to list of characters
+    password = list(field.data)
 
+    # Count lowercase, uppercase and numbers
+    lowers = uppers = digits = 0
+    for ch in password:
+        if ch.islower():
+            lowers += 1
+        if ch.isupper():
+            uppers += 1
+        if ch.isdigit():
+            digits += 1
 
-def send_message(service, user_id, message):
-    try:
-        message = (service.users().messages().send(userId=user_id, body=message)
-                   .execute())
-        print('Message Id: %s' % message['id'])
-        return message
-    except Exception as error:
-        print(error)
-
+    # Password must have one lowercase letter, one uppercase letter and one digit
+    is_valid = lowers and uppers and digits
+    if not is_valid:
+        raise ValidationError(
+            'Password must have at least one lowercase letter, one uppercase letter and one number')

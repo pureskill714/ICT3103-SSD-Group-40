@@ -15,9 +15,9 @@ BEGIN
 	JOIN Users
 	ON Users.User_ID = Sessions.User_ID
 
-	IF DATEDIFF(MINUTE, @session_created, GETDATE()) < 30 AND DATEDIFF(MINUTE, @last_logon, GETDATE()) < 30
+	IF (DATEDIFF(MINUTE, @session_created, GETDATE()) < 30 AND DATEDIFF(MINUTE, @last_logon, GETDATE()) < 30) 
 		BEGIN
-			SELECT TOP 1 session_id, Role_Name
+			SELECT TOP 1 User_UUID, Role_Name
 			FROM Sessions
 			JOIN Roles
 			ON Sessions.Role_ID = Roles.Role_ID
@@ -33,6 +33,6 @@ BEGIN
 END
 GO
 
+SELECT * FROM Sessions
 EXEC check_session 'aloycsm', 'THIS IS MY SESSION_ID'
 
-SELECT * FROM Sessions

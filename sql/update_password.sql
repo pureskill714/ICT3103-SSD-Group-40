@@ -10,6 +10,8 @@ BEGIN
 	UPDATE Users
 	SET Password = @password
 	WHERE Email = @email
+
+	SELECT @@ROWCOUNT
 END
 GO
 
