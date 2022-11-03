@@ -45,7 +45,15 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 # for logging with a confide to put in date and time before the message logging
 import logging
 
+import pyotp
+
+import stripe
+
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
+import pytz
+import socket
+from requests import get
 
 data1 = os.urandom(16)
 secret = "secretcode"
@@ -61,6 +69,13 @@ app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
 
+stripe_keys = {
+    'secret_key': "sk_test_51LyqY9EsefqfyEMpEdDt2yqYyWnOdWuVrKXaz81Z6pviQZGp6fOepWIO2iqkloxuKnHyXCkEMEEytaeUiZRiBCMO00obWmTQlE",
+    'publishable_key': "pk_test_51LyqY9EsefqfyEMpZFIUI5eydUQKyZpNqyays3S463Hz4TEHrXCN7Yyk0dlgB7M2pkjnF1NtsdHSwWfaCmCeZvCY00yk4perh9"
+}
+
+stripe.api_key = stripe_keys['secret_key']
+
 csrf = CSRFProtect(app)  # globally enable csrf protection within the application
 
 app.config.update(
@@ -68,18 +83,6 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Strict',
 )
-
-
-# function to generate OTP
-def generateOTP():
-    # Declare a string variable, only digits in this case
-    string = '0123456789'
-    sixotp = ""
-    length = len(string)
-    for i in range(6):
-        sixotp += string[math.floor(random.random() * length)]
-
-    return sixotp
 
 
 def gmail_send_message(otp, emailadd):
@@ -472,6 +475,13 @@ def home():
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 def login():
     form = LoginForm()
+
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     if form.validate_on_submit():
         session.clear()  # To ensure the session is cleared before passing
 
@@ -496,43 +506,68 @@ def login():
         # Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
         try:
             passResult = bcrypt.check_password_hash(passwordHash[0], passwordInput)
+            cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
+                           (username, int(passResult), request.remote_addr))
+
+            try:
+                res = cursor.fetchone()
+                global UUID
+
+                user_email = res[0]
+                role_ID = res[1]
+                UUID = res[2]
+            except:
+                # Login failed, so no user email or role ID returned to res
+                user_email = None
+                role_ID = None
+                UUID = None
+
+            conn.commit()
+            conn.close()
+            if user_email is not None:  # Login was successful
+                session['username'] = username
+
+                otpsecret = base64.b32encode(os.urandom(10)).decode('utf-8')
+                session['secret'] = otpsecret
+                totp = pyotp.TOTP(otpsecret)
+
+                # hotp = pyotp.HOTP(otpsecret)
+
+                gmail_send_message(totp.now(), user_email)
+                # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
+                return redirect(url_for('mfa'))
+            else:
+                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                cursor = conn.cursor()
+                insert_stmt = (
+                    "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                    "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+                )
+                data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
+                        f"User login attempt failed")
+
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                conn.close()
+
+                flash("Username or Password incorrect. Please try again")
         except:
             # Would likely occur if there was user had keyed in an invalid username
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
+                    f"User login attempt failed")
+
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            # conn.close()
+
             flash("Username or Password incorrect. Please try again")
             passResult = 0
-
-        cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
-                       (username, int(passResult), request.remote_addr))
-
-        try:
-            res = cursor.fetchone()
-            global user_email
-            global UUID
-            global generated
-
-            user_email = res[0]
-            role_ID = res[1]
-            UUID = res[2]
-        except:
-            # Login failed, so no user email or role ID returned to res
-            user_email = None
-            role_ID = None
-            UUID = None
-
-        conn.commit()
-        conn.close()
-        if user_email is not None:  # Login was successful
-            session['username'] = username
-            generated = generateOTP()
-            print(generated)
-            gmail_send_message(generated, user_email)
-            # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
-            return redirect(url_for('mfa'))
-
-            # return render_template('mfa.html', username=username, UUID=UUID, otp=generated)
-
-        else:
-            flash("Username or Password incorrect. Please try again")
 
     return render_template('login.html', form=form)
 
@@ -541,16 +576,17 @@ def login():
 # @login_required  # ensure is logged then, only then can access the dashboard
 def mfa():
     form = MfaForm()
-
+    totp = pyotp.TOTP(session['secret'])
     # check if the user exists in the database
     if form.validate_on_submit():
-        if str(form.mfa.data) == generated:
+        # Valid window extends the validity to this many counter ticks before and after the current one
+        # Counter ticks are generally a few miliseconds long
+        if totp.verify(form.mfa.data, valid_window=1):
             session['User_ID'] = UUID
-
             Session_ID = os.urandom(16)
             session['Session_ID'] = Session_ID
 
-            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
             cursor = conn.cursor()
 
             cursor.execute('EXEC create_session %s, %s', (session['username'], Session_ID))
@@ -560,11 +596,52 @@ def mfa():
 
             res = check_session(session['username'], session['Session_ID'])
 
+            hostname = str(socket.gethostname())
+            source_ip = str(get('https://api.ipify.org').text)
+            destination_ip = str(request.remote_addr)
+            browser = str(request.user_agent)
+            time_date_aware = str(datetime.datetime.now(pytz.utc))
+
             if (res[1] == 'Customer'):
+                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                cursor = conn.cursor()
+                insert_stmt = (
+                    "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                    "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+                )
+                data = (time_date_aware, "aunth_login_success", "Info", hostname, source_ip, destination_ip, browser,
+                        f"User {session['User_ID']} login successfully")
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                conn.close()
                 return redirect(url_for('customerdashboard'))
+
             elif (res[1] == 'Staff'):
+                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                cursor = conn.cursor()
+                insert_stmt = (
+                    "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                    "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+                )
+                data = (time_date_aware, "aunth_login_success", "Info", hostname, source_ip, destination_ip, browser,
+                        f"User {session['User_ID']} login successfully")
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                conn.close()
                 return redirect(url_for('staffdashboard'))
+
             elif (res[1] == 'Manager'):
+                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                cursor = conn.cursor()
+                insert_stmt = (
+                    "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                    "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+                )
+                data = (time_date_aware, "aunth_login_success", "Info", hostname, source_ip, destination_ip, browser,
+                        f"User {session['User_ID']} login successfully")
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                conn.close()
                 return redirect(url_for('managerdashboard'))
             else:
                 return render_template('403.html'), 403
@@ -580,9 +657,26 @@ def mfa():
 # @login_required  # ensure is logged then, only then can access the dashboard
 @roles_required('Customer')
 def customerdashboard():
-    # res = check_session(session['username'], session['Session_ID'])
-    # if (res[1] != 'Customer'):
-    #     return render_template('403.html'), 403
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
+    res = check_session(session['username'], session['Session_ID'])
+    if (res[1] != 'Customer'):
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
+                f"An attempt to access the staff dashboard without entitlement was made")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
+        return render_template('403.html'), 403
 
     if "username" in session:
         username = session["username"]
@@ -595,9 +689,26 @@ def customerdashboard():
 # @login_required  # ensure is logged then, only then can access the dashboard
 @roles_required('Staff')
 def staffdashboard():
-    # res = check_session(session['username'], session['Session_ID'])
-    # if (res[1] != 'Staff'):
-    #     return render_template('403.html'), 403
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
+    res = check_session(session['username'], session['Session_ID'])
+    if (res[1] != 'Staff'):
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
+                f"An attempt to access the staff dashboard without entitlement was made")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
+        return render_template('403.html'), 403
     return render_template('dashboards/staffdashboard.html')
 
 
@@ -605,9 +716,26 @@ def staffdashboard():
 # @login_required  # ensure is logged then, only then can access the dashboard
 @roles_required('Manager')
 def managerdashboard():
-    # res = check_session(session['username'], session['Session_ID'])
-    # if (res[1] != 'Manager'):
-    #     return render_template('403.html'), 403
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
+    res = check_session(session['username'], session['Session_ID'])
+    if (res[1] != 'Manager'):
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
+                f"An attempt to access the manager dashboard without entitlement was made")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
+        return render_template('403.html'), 403
     return render_template('dashboards/managerdashboard.html')
 
 
@@ -615,13 +743,31 @@ def managerdashboard():
 # @login_required  # ensure is logged then, only then can log out
 @roles_required('Customer', 'Staff', 'Manager')
 def logout():
-    # try:
-    #     check_session(session['username'], session['Session_ID'])
-    # except:
-    #     return render_template('403.html'), 403
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
+    try:
+        check_session(session['username'], session['Session_ID'])
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "aunth_logout_success", "Info", hostname, source_ip, destination_ip, browser,
+                f"User {session['User_ID']} logout successfully")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
+    except:
+        return render_template('403.html'), 403
     logout_user()  # log the user out
     session.clear()  # Ensure session is cleared
     session.pop('username', None)  # Remove session after user has logout
+
     return redirect(url_for('login'))  # redirect user back to login page
 
 
@@ -629,6 +775,13 @@ def logout():
 def forgetPassword():
     logout_user()  # log the user out
     form = forgotPasswordEmailForm()
+
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     if form.validate_on_submit():
         email = encode(form.email.data)
 
@@ -640,6 +793,17 @@ def forgetPassword():
         flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
 
         if (result[0] == 1):
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (time_date_aware, "forget_password_email_successful_sent", "Info", hostname, source_ip, destination_ip, browser,
+                    f"Password reset link successfully sent to email {email}")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
             # Email of the user found
             from gapi import create_message, send_message, service
 
@@ -661,6 +825,19 @@ def forgetPassword():
 
         elif (result[0] == 2):
             # email of the user not found, create log with IP here
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (
+            time_date_aware, "forget_password_email_failed_sent", "Warn", hostname, source_ip, destination_ip,
+            browser,
+            f"Password reset link failed to sent to email {email}")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
             ip_addr = request.remote_addr
             pass
 
@@ -696,11 +873,18 @@ def reset_with_token(token):
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
+
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
 
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -733,8 +917,34 @@ def register():
 
         if res == 2:
             # Stored procedure was ran successfully and user successfully registered
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (
+            time_date_aware, "aunth_create_user_role_id_1", "Warn", hostname, source_ip, destination_ip, browser,
+            f"User {username}(role id 1:Customer) created successfully")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
             return redirect(url_for('registersuccess'))  # redirect to login page after register
         elif res == 1:
+
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (
+                time_date_aware, "input_validation_fail", "Warn", hostname, source_ip, destination_ip, browser,
+                f"Attempt to create new customer account with existing Username : {username} or email : {email}")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
+
             # Stored procedure was ran but failed because username or email is already in use
             # Create log and send email to user
             flash("Username or Email may already be in use. Please try again. ")
@@ -1112,7 +1322,7 @@ def staffregistersucess():
 
 
 @app.route('/staffdeletesearch', methods=['GET', 'POST'])
-# @roles_required('Manager')
+@roles_required('Manager')
 def staffDeleteSearch():
     form = StaffSearchForm()
     return render_template('staffCRUD/staff_delete_search.html', form=form)
@@ -1126,6 +1336,25 @@ def staffDeleteSubmit():
 
 @app.route("/timeout")
 def timeout():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    cursor = conn.cursor()
+    insert_stmt = (
+        "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+        "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+    )
+    data = (time_date_aware, "session_expired", "Warn", hostname, source_ip, destination_ip, browser,
+            f"User {session['User_ID']} session timeout")
+
+    cursor.execute(insert_stmt, data)
+    conn.commit()
+    conn.close()
+
     session.clear()  # Ensure session is cleared
     return render_template('timeout.html')
 
@@ -1184,6 +1413,18 @@ def handle_csrf_error(error):
     return render_template('403.html'), 403
 
 
+# To handle index error
+@app.errorhandler(IndexError)
+def index_error(error):
+    return render_template('500.html'), 500
+
+
+# To handle exception error
+@app.errorhandler(Exception)
+def operational_error(error):
+    return render_template('403.html'), 403
+
+
 @app.route("/booking", methods=['GET', 'POST'])
 # @login_required
 @roles_required('Customer')
@@ -1203,6 +1444,15 @@ def booking():
         start_date = form.start_date.data
         end_date = form.end_date.data
 
+        print(start_date)
+        print(end_date)
+        format = "%Y/%m/%d"
+        start_date_formatted = start_date.strftime(format)
+        end_date_formatted = end_date.strftime(format)
+        num_days = end_date - start_date
+        num_days = num_days.days
+        print(num_days)
+
         if room_type == "Standard Twin":
             room_type = 1
         elif room_type == "Standard Queen":
@@ -1212,6 +1462,15 @@ def booking():
         else:
             # Default value + logging
             room_type = 1
+
+        if room_type == 1:
+            cost = num_days * 50
+        if room_type == 2:
+            cost = num_days * 70
+        if room_type == 3:
+            cost = num_days * 100
+
+        session['STRIPEpayment'] = cost * 100
 
         # Send the data to database
         cursor.execute("EXEC setup_booking %s, %d, %s, %s, %s", (res[0], room_type, "", start_date, end_date))
@@ -1225,7 +1484,10 @@ def booking():
         conn.close()
         if res == 1:
             # Booking pending approval
-            return render_template('bookings/bookingsuccess.html')
+            return render_template('STRIPEpayment/payment.html', room_type_string=form.room_type.data,
+                                   room_type_id=room_type, start_date=start_date, end_date=end_date, num_days=num_days,
+                                   cost=cost, key=stripe_keys['publishable_key'],
+                                   stripe_payment=session['STRIPEpayment'])
         elif res == 2:
             # Database detected that there was no such room available during the date range provided
             flash("Booking failed. No rooms of this type available during date range. Or input error detected")
@@ -1234,6 +1496,24 @@ def booking():
             flash("Booking failed. No rooms of this type available during date range. Or input error detected")
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
+
+
+@app.route('/checkout', methods=['POST', 'GET'])
+def checkout():
+    customer = stripe.Customer.create(
+        source=request.form['stripeToken']
+    )
+
+    stripe.Charge.create(
+        customer=customer.id,
+        amount=session['STRIPEpayment'],
+        currency='sgd',
+        description='Booking Payment'
+    )
+
+    amount = session['STRIPEpayment'] / 100
+
+    return render_template('STRIPEpayment/checkout.html', amount=amount)
 
 
 if __name__ == '__main__':
