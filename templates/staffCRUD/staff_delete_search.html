@@ -5,10 +5,9 @@
 <h1>Enter the Employee ID of the staff you want to delete</h1>
 
 <form action="/staffdeletesubmit" method="POST">
-  {{ form.csrf_token() }}
-  {{ form.username.label }}
-  {{ form.username(class_="form-control form-control-lg" + (" is-invalid" if form.username.errors else "") + "", placeholder="Enter your username") }}
-  {{ form.submit(class="btn btn-lg btn-primary") }}
+  <label>Employee Number:</label>
+  <input name="emp_username">
+  <input type="submit" value="Submit">
 </form>
 
 </body>
