@@ -46,6 +46,7 @@ import logging
 import pyotp
 
 import stripe
+
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 import pytz
@@ -64,8 +65,6 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give sess
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
 
-
-
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
 
@@ -83,6 +82,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Strict',
 )
+
 
 def gmail_send_message(otp, emailadd):
     creds = None
@@ -219,6 +219,7 @@ class RegisterForm(FlaskForm):
 
     submit = SubmitField("Register")  # Register button once they are done
 
+
 class EditProfileForm(FlaskForm):
     # For users to choose a first name
     firstname = StringField('First Name', validators=[InputRequired(),
@@ -240,13 +241,13 @@ class EditProfileForm(FlaskForm):
 
     # For users to choose a password
     password = PasswordField(label='Current Password', validators=[InputRequired(),
-                                                           validators.Length(min=8, max=64)])
-
+                                                                   validators.Length(min=8, max=64)])
 
     # For users to enter their contact number
     contact = IntegerField('Contact Number', validators=[InputRequired()])
 
     submit = SubmitField("Save changes")  # Register button once they are done
+
 
 class ChangePasswordForm(FlaskForm):
     # For users to choose a password
@@ -264,6 +265,7 @@ class ChangePasswordForm(FlaskForm):
                                                                                 validators.EqualTo('password2',
                                                                                                    message='Passwords must match, Please try again')])
     submitp = SubmitField("Save")  # Register button once they are done
+
 
 class EditProfileForm(FlaskForm):
     # For users to choose a first name
@@ -382,6 +384,7 @@ class updateStaffAccount(FlaskForm):
 
     submit = SubmitField('Update')
 
+
 # 4) Delete staff account
 
 
@@ -416,7 +419,7 @@ class deleteBooking(FlaskForm):
 
 class forgotPasswordEmailForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(),
-                                             Length(min=4, max=254), Email()])
+                                            Length(min=4, max=254), Email()])
     submit = SubmitField('Reset password')
 
 
@@ -506,12 +509,12 @@ def login():
         conn.close()
         if user_email is not None:  # Login was successful
             session['username'] = username
-            
+
             otpsecret = base64.b32encode(os.urandom(10)).decode('utf-8')
             session['secret'] = otpsecret
             totp = pyotp.TOTP(otpsecret)
-            
-            #hotp = pyotp.HOTP(otpsecret)
+
+            # hotp = pyotp.HOTP(otpsecret)
 
             gmail_send_message(totp.now(), user_email)
             # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
@@ -529,8 +532,8 @@ def mfa():
     totp = pyotp.TOTP(session['secret'])
     # check if the user exists in the database
     if form.validate_on_submit():
-        #Valid window extends the validity to this many counter ticks before and after the current one
-        #Counter ticks are generally a few miliseconds long
+        # Valid window extends the validity to this many counter ticks before and after the current one
+        # Counter ticks are generally a few miliseconds long
         if totp.verify(form.mfa.data, valid_window=1):
             session['User_ID'] = UUID
             Session_ID = os.urandom(16)
@@ -559,8 +562,9 @@ def mfa():
                     "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
                     "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
                 )
-                data = (time_date_aware,"aunth_login_success","Info",hostname,source_ip,destination_ip,browser,f"User {session['User_ID']} login successfully")
-                cursor.execute(insert_stmt,data)
+                data = (time_date_aware, "aunth_login_success", "Info", hostname, source_ip, destination_ip, browser,
+                        f"User {session['User_ID']} login successfully")
+                cursor.execute(insert_stmt, data)
                 conn.commit()
                 conn.close()
                 return redirect(url_for('customerdashboard'))
@@ -637,13 +641,31 @@ def managerdashboard():
 @app.route("/logout", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can log out
 def logout():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     try:
         check_session(session['username'], session['Session_ID'])
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "aunth_logout_success", "Info", hostname, source_ip, destination_ip, browser,
+                f"User {session['User_ID']} logout successfully")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
     except:
         return render_template('403.html'), 403
     logout_user()  # log the user out
     session.clear()  # Ensure session is cleared
     session.pop('username', None)  # Remove session after user has logout
+
     return redirect(url_for('login'))  # redirect user back to login page
 
 
@@ -1242,7 +1264,7 @@ def booking():
         conn.commit()
         conn.close()
 
-        if res == 1:  
+        if res == 1:
             # Booking pending approval
             return render_template('STRIPEpayment/payment.html', room_type_string=form.room_type.data,
                                    room_type_id=room_type, start_date=start_date, end_date=end_date, num_days=num_days,
@@ -1257,6 +1279,7 @@ def booking():
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
+
 @app.route('/checkout', methods=['POST', 'GET'])
 def checkout():
     customer = stripe.Customer.create(
@@ -1270,9 +1293,10 @@ def checkout():
         description='Booking Payment'
     )
 
-    amount = session['STRIPEpayment']/100
+    amount = session['STRIPEpayment'] / 100
 
     return render_template('STRIPEpayment/checkout.html', amount=amount)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
