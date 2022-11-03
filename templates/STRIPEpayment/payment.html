@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	  <style>
+		  #navbar{
+    background:#333;
+    color:#fff;
+    overflow:auto;
+}
+
+#navbar a{
+    color:#fff
+}
+
+#navbar h1{
+    float:left;
+    padding-top:20px;
+}
+
+#navbar ul{
+    list-style:none;
+    float:right;
+}
+
+#navbar ul li {
+ float:left;
+}
+
+#navbar ul li a{
+    display:block;
+    padding:20px;
+    text-align: center;
+}
+
+#navbar ul li a:hover,
+ #navbar ul li a.current{
+    background:#444;
+    color:#f7c08a;
+}
+	  </style>
+    <title></title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    />
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <!-- Popper JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  </head>
+  <div>
+    <h3>Confirming that you are booking for :</h3>
+    <p>Room Type : {{room_type_string}}</p>
+    <p>Start Date : {{start_date}}</p>
+    <p>End Date : {{end_date}}</p>
+    <P>Your total amount will be ${{cost}}</P>
+
+    <form action="{{url_for('checkout')}}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <script
+        src="https://checkout.stripe.com/checkout.js"
+        class="stripe-button"
+        data-key="{{ key }}"
+        data-description="Booking Payment"
+        data-amount="{{stripe_payment}}"
+        data-locale="auto">
+      </script>
+    </form>
+  </div>
