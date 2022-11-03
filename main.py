@@ -352,6 +352,10 @@ class StaffRegisterForm(FlaskForm):
     # For users to enter their contact number
     contact = IntegerField(validators=[InputRequired()])
 
+    # For manager to reenter their password
+    password = PasswordField(validators=[InputRequired(),
+                                         Length(min=8, max=64)], render_kw={"placeholder": "Resubmit Password"})
+
     submit = SubmitField("Register")  # Register button once they are done
 
 
@@ -780,8 +784,10 @@ def forgetPassword():
                 "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
                 "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
             )
-            data = (time_date_aware, "forget_password_email_successful_sent", "Info", hostname, source_ip, destination_ip, browser,
-                    f"Password reset link successfully sent to email {email}")
+            data = (
+            time_date_aware, "forget_password_email_successful_sent", "Info", hostname, source_ip, destination_ip,
+            browser,
+            f"Password reset link successfully sent to email {email}")
             cursor.execute(insert_stmt, data)
             conn.commit()
             conn.close()
@@ -813,9 +819,9 @@ def forgetPassword():
                 "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
             )
             data = (
-            time_date_aware, "forget_password_email_failed_sent", "Warn", hostname, source_ip, destination_ip,
-            browser,
-            f"Password reset link failed to sent to email {email}")
+                time_date_aware, "forget_password_email_failed_sent", "Warn", hostname, source_ip, destination_ip,
+                browser,
+                f"Password reset link failed to sent to email {email}")
             cursor.execute(insert_stmt, data)
             conn.commit()
             conn.close()
@@ -904,8 +910,8 @@ def register():
                 "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
             )
             data = (
-            time_date_aware, "aunth_create_user_role_id_1", "Warn", hostname, source_ip, destination_ip, browser,
-            f"User {username}(role id 1:Customer) created successfully")
+                time_date_aware, "aunth_create_user_role_id_1", "Warn", hostname, source_ip, destination_ip, browser,
+                f"User {username}(role id 1:Customer) created successfully")
             cursor.execute(insert_stmt, data)
             conn.commit()
             conn.close()
@@ -946,38 +952,45 @@ def staffregister():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
         conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
-
-        # Run encode/decode check functions
-        username = encode(form.username.data)
-        email = encode(form.email.data)
-        fname = encode(form.firstname.data)
-        lname = encode(form.lastname.data)
-        contact = form.contact.data
-
-        if username is None or email is None or fname is None or lname is None:
-            flash("Please check your user inputs again.")
-            return render_template('register.html', form=form)
-
         cursor = conn.cursor()
-        cursor.execute("EXEC register_staff @username = %s, @email = %s, @fname = %s, @lname = %s, @contact = %s",
-                       (username, email, fname, lname, contact))
-        res = cursor.fetchone()[0]
-        conn.commit()
-        conn.close()
+        cursor.execute('EXEC retrieve_password @username = %s', session['username'])
+        passwordHash = cursor.fetchone()
 
-        # Generate a reset password link and send it to the email used to create the account.
-        # Since the account has no valid password assigned to it, this password link must not check if the user knows the old password.
+        # Check if password correct or not, if correct proceed to register staff, else display error msg
+        if bcrypt.check_password_hash(passwordHash[0], form.password.data):
+            # Run encode/decode check functions
+            username = encode(form.username.data)
+            email = encode(form.email.data)
+            fname = encode(form.firstname.data)
+            lname = encode(form.lastname.data)
+            contact = form.contact.data
 
-        if res == 2:
-            # Stored procedure was ran successfully and user successfully registered
-            return redirect(url_for('staffregistersucess'))  # redirect to login page after register
-        elif res == 1:
-            # Stored procedure was ran but failed because username or email is already in use
-            # Create log and send email to user
-            flash("Username or Email may already be in use. Please try again. ")
+            if username is None or email is None or fname is None or lname is None:
+                flash("Please check your user inputs again.")
+                return render_template('register.html', form=form)
+
+            cursor = conn.cursor()
+            cursor.execute("EXEC register_staff @username = %s, @email = %s, @fname = %s, @lname = %s, @contact = %s",
+                           (username, email, fname, lname, contact))
+            res = cursor.fetchone()[0]
+            conn.commit()
+            conn.close()
+
+            # Generate a reset password link and send it to the email used to create the account.
+            # Since the account has no valid password assigned to it, this password link must not check if the user knows the old password.
+
+            if res == 2:
+                # Stored procedure was ran successfully and user successfully registered
+                return redirect(url_for('staffregistersucess'))  # redirect to login page after register
+            elif res == 1:
+                # Stored procedure was ran but failed because username or email is already in use
+                # Create log and send email to user
+                flash("Username or Email may already be in use. Please try again. ")
+            else:
+                # Somehow the stored procedure did not run for whatever reason
+                flash("Username or Email may already be in use. Please try again. ")
         else:
-            # Somehow the stored procedure did not run for whatever reason
-            flash("Username or Email may already be in use. Please try again. ")
+            return render_template('passwordresubmitfailed.html')
 
     return render_template('staffregister.html', form=form)
 
@@ -1279,7 +1292,7 @@ def registersuccess():
 
 
 @app.route('/staffregistersucess')
-@login_required  # ensure is logged then, only then can log out
+# @login_required  # ensure is logged then, only then can log out
 def staffregistersucess():
     return render_template('staffregistersucess.html')
 
@@ -1374,14 +1387,14 @@ def handle_csrf_error(error):
 
 
 # To handle index error
-@app.errorhandler(IndexError)        
-def index_error(error):        
+@app.errorhandler(IndexError)
+def index_error(error):
     return render_template('500.html'), 500
- 
- 
+
+
 # To handle exception error
-@app.errorhandler(Exception)        
-def operational_error(error):        
+@app.errorhandler(Exception)
+def operational_error(error):
     return render_template('403.html'), 403
 
 
