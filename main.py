@@ -739,6 +739,13 @@ def reset_with_token(token):
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
+
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
@@ -771,6 +778,18 @@ def register():
             "EXEC register_customer @username = %s, @password = %s, @email = %s, @fname = %s, @lname = %s, @contact = %s",
             (username, hashed_password, email, fname, lname, contact))
         res = cursor.fetchone()[0]
+        conn.commit()
+        conn.close()
+
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "aunth_create_user_role_id_1]", "Warn", hostname, source_ip, destination_ip, browser,
+                f"User {username}(role id 1:Customer) created successfully")
+        cursor.execute(insert_stmt, data)
         conn.commit()
         conn.close()
 
