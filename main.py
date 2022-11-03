@@ -537,7 +537,7 @@ def login():
                 # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
                 return redirect(url_for('mfa'))
             else:
-                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
                 cursor = conn.cursor()
                 insert_stmt = (
                     "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -553,7 +553,7 @@ def login():
                 flash("Username or Password incorrect. Please try again")
         except:
             # Would likely occur if there was user had keyed in an invalid username
-            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
             cursor = conn.cursor()
             insert_stmt = (
                 "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -586,7 +586,7 @@ def mfa():
             Session_ID = os.urandom(16)
             session['Session_ID'] = Session_ID
 
-            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
             cursor = conn.cursor()
 
             cursor.execute('EXEC create_session %s, %s', (session['username'], Session_ID))
@@ -603,7 +603,7 @@ def mfa():
             time_date_aware = str(datetime.datetime.now(pytz.utc))
 
             if (res[1] == 'Customer'):
-                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
                 cursor = conn.cursor()
                 insert_stmt = (
                     "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -617,7 +617,7 @@ def mfa():
                 return redirect(url_for('customerdashboard'))
 
             elif (res[1] == 'Staff'):
-                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
                 cursor = conn.cursor()
                 insert_stmt = (
                     "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -631,7 +631,7 @@ def mfa():
                 return redirect(url_for('staffdashboard'))
 
             elif (res[1] == 'Manager'):
-                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
                 cursor = conn.cursor()
                 insert_stmt = (
                     "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -665,7 +665,7 @@ def customerdashboard():
 
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Customer'):
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
         cursor = conn.cursor()
         insert_stmt = (
             "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -697,7 +697,7 @@ def staffdashboard():
 
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Staff'):
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
         cursor = conn.cursor()
         insert_stmt = (
             "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -724,7 +724,7 @@ def managerdashboard():
 
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Manager'):
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
         cursor = conn.cursor()
         insert_stmt = (
             "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -751,7 +751,7 @@ def logout():
 
     try:
         check_session(session['username'], session['Session_ID'])
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
         cursor = conn.cursor()
         insert_stmt = (
             "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -793,7 +793,7 @@ def forgetPassword():
         flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
 
         if (result[0] == 1):
-            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
             cursor = conn.cursor()
             insert_stmt = (
                 "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -825,7 +825,7 @@ def forgetPassword():
 
         elif (result[0] == 2):
             # email of the user not found, create log with IP here
-            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
             cursor = conn.cursor()
             insert_stmt = (
                 "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -884,7 +884,7 @@ def register():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
 
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -917,7 +917,7 @@ def register():
 
         if res == 2:
             # Stored procedure was ran successfully and user successfully registered
-            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
             cursor = conn.cursor()
             insert_stmt = (
                 "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -932,7 +932,7 @@ def register():
             return redirect(url_for('registersuccess'))  # redirect to login page after register
         elif res == 1:
 
-            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
             cursor = conn.cursor()
             insert_stmt = (
                 "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
@@ -1342,7 +1342,7 @@ def timeout():
     browser = str(request.user_agent)
     time_date_aware = str(datetime.datetime.now(pytz.utc))
 
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3103")
     cursor = conn.cursor()
     insert_stmt = (
         "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
