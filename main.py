@@ -1141,6 +1141,18 @@ def handle_csrf_error(error):
     return render_template('403.html'), 403
 
 
+# To handle index error
+@app.errorhandler(IndexError)        
+def index_error(error):        
+    return render_template('500.html'), 500
+ 
+ 
+# To handle exception error
+@app.errorhandler(Exception)        
+def operational_error(error):        
+    return render_template('403.html'), 403
+
+
 @app.route("/booking", methods=['GET', 'POST'])
 # @login_required
 def booking():
