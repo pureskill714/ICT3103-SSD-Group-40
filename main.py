@@ -3,7 +3,6 @@ from __future__ import print_function  # not sure if can remove this
 
 import base64
 import datetime
-import functools
 import math
 import os
 # for google API stuff (part 2)
@@ -12,14 +11,13 @@ import random
 import re
 from datetime import date, timedelta
 from email.message import EmailMessage
-from urllib.parse import quote
 
 import pymssql
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
 from flask_bcrypt import Bcrypt
-from flask_login import LoginManager, logout_user
+from flask_login import LoginManager, login_required, logout_user
 from flask_wtf import FlaskForm, RecaptchaField
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from google.auth.transport.requests import Request
@@ -32,7 +30,7 @@ from wtforms import StringField, PasswordField, SubmitField, IntegerField, Email
     DateField
 from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired, EqualTo
 
-from util import cleanhtml, password_policy_check, make_safe_url
+from util import cleanhtml, password_policy_check
 
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
@@ -68,6 +66,7 @@ app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
+
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
 
@@ -169,7 +168,7 @@ def load_user_customer(user_id):
 def check_session(username, session_ID):
     username = username
     session_ID = session_ID
-    conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute('EXEC check_session %s, %s', (username, session_ID))
 
@@ -204,7 +203,7 @@ class RegisterForm(FlaskForm):
 
     # For users to input their email
     email = EmailField('Email', validators=[InputRequired("Please enter email address"),
-                                            Length(min=4, max=254), Email(granular_message=True, check_deliverability=True)])
+                                            Length(min=4, max=254), Email(check_deliverability=True)])
 
     # For users to choose a username
     username = StringField(validators=[InputRequired(),
@@ -234,7 +233,54 @@ class EditProfileForm(FlaskForm):
 
     # For users to input their email
     email = EmailField('Email', validators=[InputRequired("Please enter email address"),
-                                            Length(min=4, max=254), Email(granular_message=True, check_deliverability=True)])
+                                            Length(min=4, max=254), Email(check_deliverability=True)])
+
+    # For users to choose a username
+    username = StringField(render_kw={'disabled': True})
+    country = StringField(validators=[Length(max=128)])
+    city = StringField(validators=[Length(max=128)])
+    address = StringField(validators=[Length(max=255)])
+    dob = DateField("Date of Brith", validators=[validators.Optional()])
+
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                                   validators.Length(min=8, max=64)])
+
+    # For users to enter their contact number
+    contact = IntegerField('Contact Number', validators=[InputRequired()])
+
+    submit = SubmitField("Save changes")  # Register button once they are done
+
+
+class ChangePasswordForm(FlaskForm):
+    # For users to choose a password
+    password = PasswordField(label='Current Password', validators=[InputRequired(),
+                                                                   validators.Length(min=8, max=64)])
+
+    # For users to confirm password
+    password2 = PasswordField(label='New Password', validators=[InputRequired(),
+                                                                validators.Length(min=8, max=64),
+                                                                validators.EqualTo('password_confirm2',
+                                                                                   message='Passwords must match, Please try again')])
+    # For users to confirm password
+    password_confirm2 = PasswordField(label='Confirm New Password', validators=[InputRequired(),
+                                                                                validators.Length(min=8, max=64),
+                                                                                validators.EqualTo('password2',
+                                                                                                   message='Passwords must match, Please try again')])
+    submitp = SubmitField("Save")  # Register button once they are done
+
+
+class EditProfileForm(FlaskForm):
+    # For users to choose a first name
+    firstname = StringField('First Name', validators=[InputRequired(),
+                                                      Length(min=2, max=64)])
+    # For users to choose a last nameaddress
+    lastname = StringField('Last Name', validators=[InputRequired(),
+                                                    Length(min=2, max=64)])
+
+    # For users to input their email
+    email = EmailField('Email', validators=[InputRequired("Please enter email address"),
+                                            Length(min=4, max=254), Email(check_deliverability=True)])
 
     # For users to choose a username
     username = StringField(render_kw={'disabled': True})
@@ -457,7 +503,7 @@ def login():
 
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
 
         # Run encode/decode check functions
@@ -708,7 +754,7 @@ def forgetPassword():
     if form.validate_on_submit():
         email = encode(form.email.data)
 
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC check_email %s', form.email.data)
         result = cursor.fetchone()
@@ -766,15 +812,14 @@ def reset_with_token(token):
     try:
         email = ts.loads(token, salt=salt, max_age=360)
     except:
-        form = forgotPasswordEmailForm()
         flash('The confirmation link is invalid or has expired.', 'danger')
-        return render_template('forgetpassword.html', form=form)
+        return redirect(url_for('forgetPassword'))
     form = newPasswordForm()
 
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
 
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC update_password %s, %s', (email, hashed_password))
         conn.commit()
@@ -880,7 +925,7 @@ def staffregister():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
 
         # Run encode/decode check functions
         username = encode(form.username.data)
@@ -952,7 +997,7 @@ def pendingbookingtable():
         return render_template('403.html'), 403
 
     approve = ApproveBooking()
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     get_bookings = "SELECT * FROM get_pending_bookings"
     cursor.execute(get_bookings)
@@ -969,7 +1014,7 @@ def cancelBooking():
         return render_template('403.html'), 403
 
     delete = deleteBooking()
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     User_UUID = res[0]
     cursor.execute("EXEC get_my_bookings %s", User_UUID)
@@ -985,7 +1030,7 @@ def deleteBookingConfirm(id):
     if (res[1] != 'Customer'):
        return render_template('403.html'), 403
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC delete_bookings %s, %s", (id, res[0]))
     res = cursor.fetchone()
@@ -1005,14 +1050,14 @@ def deleteBookingConfirm(id):
 def bookingtable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] == 'Customer'):
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         User_UUID = res[0]
         cursor.execute("EXEC get_my_bookings %s", User_UUID)
         bookings = cursor.fetchall()
         conn.close()
     elif (res[1] == 'Staff'):
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM get_bookings")
         bookings = cursor.fetchall()
@@ -1030,7 +1075,7 @@ def pendingBookingApprove(id):
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC approve_bookings %s", id)
     conn.commit()
@@ -1111,11 +1156,6 @@ def staffUpdateSubmit():
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
 
-    return render_template('staffCRUD/staff_update_value.html', update_form=update_form, user=user,
-                           username=update_form.username.data)
-
-    # return render_template('staffCRUD/staff_update_sucess.html')
-
 
 @app.route("/viewProfile", methods=['GET'])
 # @login_required  # ensure is logged then, only then can access the dashboard
@@ -1130,7 +1170,7 @@ def viewProfile():
     else:
         return redirect(url_for('timeout'))
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -1151,7 +1191,7 @@ def editProfile():
     username = session["username"]
     if editProfileForm.validate_on_submit():
         passwordInput = encode(editProfileForm.password.data)
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC retrieve_password @username = %s', username)
         passwordHash = cursor.fetchone()
@@ -1198,7 +1238,7 @@ def changepassword():
     else:
         return redirect(url_for('timeout'))
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -1224,7 +1264,7 @@ def changepassword():
 
 
 @app.route('/registersuccess')
-# @login_required  # ensure is logged then, only then can log out
+@login_required  # ensure is logged then, only then can log out
 def registersuccess():
     return render_template('registersucess.html')
 
@@ -1240,8 +1280,7 @@ def staffregistersucess():
 
 @app.route('/staffdeletesearch', methods=['GET', 'POST'])
 def staffDeleteSearch():
-    form = StaffSearchForm()
-    return render_template('staffCRUD/staff_delete_search.html', form=form)
+    return render_template('staffCRUD/staff_delete_search.html')
 
 
 @app.route('/staffdeletesubmit', methods=['GET', 'POST'])
@@ -1327,14 +1366,14 @@ def handle_csrf_error(error):
 
 
 # To handle index error
-@app.errorhandler(IndexError)
-def index_error(error):
+@app.errorhandler(IndexError)        
+def index_error(error):        
     return render_template('500.html'), 500
-
-
+ 
+ 
 # To handle exception error
-@app.errorhandler(Exception)
-def operational_error(error):
+@app.errorhandler(Exception)        
+def operational_error(error):        
     return render_template('403.html'), 403
 
 
@@ -1348,7 +1387,7 @@ def booking():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
 
         room_type = form.room_type.data
@@ -1386,6 +1425,7 @@ def booking():
 
         conn.commit()
         conn.close()
+
         if res == 1:
             # Booking pending approval
             return render_template('STRIPEpayment/payment.html', room_type_string=form.room_type.data,
