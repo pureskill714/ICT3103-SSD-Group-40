@@ -406,6 +406,10 @@ class BookingForm(FlaskForm):
     today = date.today()
     start_date = DateField('Start Date', format='%Y-%m-%d', default=today, validators=(validators.DataRequired(),))
     end_date = DateField('End date', validators=[DataRequired()])
+
+    # For customer to reenter their password
+    password = PasswordField(validators=[InputRequired(),
+                                         Length(min=8, max=64)], render_kw={"placeholder": ""})
     submit = SubmitField('Book')
 
     def validate_start_date(self, date):
@@ -990,7 +994,7 @@ def staffregister():
                 # Somehow the stored procedure did not run for whatever reason
                 flash("Username or Email may already be in use. Please try again. ")
         else:
-            return render_template('passwordresubmitfailed.html')
+            return render_template('create_staff_password_resubmit_failed.html')
 
     return render_template('staffregister.html', form=form)
 
@@ -1411,62 +1415,68 @@ def booking():
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
         conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
+        cursor.execute('EXEC retrieve_password @username = %s', session['username'])
+        passwordHash = cursor.fetchone()
+        # Check if password correct or not, if correct proceed to register staff, else display error msg
+        if bcrypt.check_password_hash(passwordHash[0], form.password.data):
 
-        room_type = form.room_type.data
-        start_date = form.start_date.data
-        end_date = form.end_date.data
+            room_type = form.room_type.data
+            start_date = form.start_date.data
+            end_date = form.end_date.data
 
-        print(start_date)
-        print(end_date)
-        format = "%Y/%m/%d"
-        start_date_formatted = start_date.strftime(format)
-        end_date_formatted = end_date.strftime(format)
-        num_days = end_date - start_date
-        num_days = num_days.days
-        print(num_days)
+            print(start_date)
+            print(end_date)
+            format = "%Y/%m/%d"
+            start_date_formatted = start_date.strftime(format)
+            end_date_formatted = end_date.strftime(format)
+            num_days = end_date - start_date
+            num_days = num_days.days
+            print(num_days)
 
-        if room_type == "Standard Twin":
-            room_type = 1
-        elif room_type == "Standard Queen":
-            room_type = 2
-        elif room_type == "Deluxe":
-            room_type = 3
+            if room_type == "Standard Twin":
+                room_type = 1
+            elif room_type == "Standard Queen":
+                room_type = 2
+            elif room_type == "Deluxe":
+                room_type = 3
+            else:
+                # Default value + logging
+                room_type = 1
+
+            if room_type == 1:
+                cost = num_days * 50
+            if room_type == 2:
+                cost = num_days * 70
+            if room_type == 3:
+                cost = num_days * 100
+
+            session['STRIPEpayment'] = cost * 100
+
+            # Send the data to database
+            cursor.execute("EXEC setup_booking %s, %d, %s, %s, %s", (res[0], room_type, "", start_date, end_date))
+
+            try:
+                res = cursor.fetchone()[0]
+            except:
+                res = 3
+
+            conn.commit()
+            conn.close()
+
+            if res == 1:
+                # Booking pending approval
+                return render_template('STRIPEpayment/payment.html', room_type_string=form.room_type.data,
+                                       room_type_id=room_type, start_date=start_date, end_date=end_date, num_days=num_days,
+                                       cost=cost, key=stripe_keys['publishable_key'],
+                                       stripe_payment=session['STRIPEpayment'])
+            elif res == 2:
+                # Database detected that there was no such room available during the date range provided
+                flash("Booking failed. No rooms of this type available during date range. Or input error detected")
+            else:
+                # For logging purposes
+                flash("Booking failed. No rooms of this type available during date range. Or input error detected")
         else:
-            # Default value + logging
-            room_type = 1
-
-        if room_type == 1:
-            cost = num_days * 50
-        if room_type == 2:
-            cost = num_days * 70
-        if room_type == 3:
-            cost = num_days * 100
-
-        session['STRIPEpayment'] = cost * 100
-
-        # Send the data to database
-        cursor.execute("EXEC setup_booking %s, %d, %s, %s, %s", (res[0], room_type, "", start_date, end_date))
-
-        try:
-            res = cursor.fetchone()[0]
-        except:
-            res = 3
-
-        conn.commit()
-        conn.close()
-
-        if res == 1:
-            # Booking pending approval
-            return render_template('STRIPEpayment/payment.html', room_type_string=form.room_type.data,
-                                   room_type_id=room_type, start_date=start_date, end_date=end_date, num_days=num_days,
-                                   cost=cost, key=stripe_keys['publishable_key'],
-                                   stripe_payment=session['STRIPEpayment'])
-        elif res == 2:
-            # Database detected that there was no such room available during the date range provided
-            flash("Booking failed. No rooms of this type available during date range. Or input error detected")
-        else:
-            # For logging purposes
-            flash("Booking failed. No rooms of this type available during date range. Or input error detected")
+            return render_template('book_room_password_resubmit_failed.html')
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
