@@ -46,7 +46,12 @@ import logging
 import pyotp
 
 import stripe
+
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
+import pytz
+import socket
+from requests import get
 
 data1 = os.urandom(16)
 secret = "secretcode"
@@ -59,8 +64,6 @@ app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
-
-
 
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
@@ -79,6 +82,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Strict',
 )
+
 
 def gmail_send_message(otp, emailadd):
     creds = None
@@ -169,7 +173,7 @@ def load_user_customer(user_id):
 def check_session(username, session_ID):
     username = encode(username)
     session_ID = session_ID
-    conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute('EXEC check_session %s, %s', (username, session_ID))
 
@@ -215,6 +219,7 @@ class RegisterForm(FlaskForm):
 
     submit = SubmitField("Register")  # Register button once they are done
 
+
 class EditProfileForm(FlaskForm):
     # For users to choose a first name
     firstname = StringField('First Name', validators=[InputRequired(),
@@ -236,13 +241,13 @@ class EditProfileForm(FlaskForm):
 
     # For users to choose a password
     password = PasswordField(label='Current Password', validators=[InputRequired(),
-                                                           validators.Length(min=8, max=64)])
-
+                                                                   validators.Length(min=8, max=64)])
 
     # For users to enter their contact number
     contact = IntegerField('Contact Number', validators=[InputRequired()])
 
     submit = SubmitField("Save changes")  # Register button once they are done
+
 
 class ChangePasswordForm(FlaskForm):
     # For users to choose a password
@@ -260,6 +265,7 @@ class ChangePasswordForm(FlaskForm):
                                                                                 validators.EqualTo('password2',
                                                                                                    message='Passwords must match, Please try again')])
     submitp = SubmitField("Save")  # Register button once they are done
+
 
 class EditProfileForm(FlaskForm):
     # For users to choose a first name
@@ -378,6 +384,7 @@ class updateStaffAccount(FlaskForm):
 
     submit = SubmitField('Update')
 
+
 # 4) Delete staff account
 
 
@@ -412,7 +419,7 @@ class deleteBooking(FlaskForm):
 
 class forgotPasswordEmailForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(),
-                                             Length(min=4, max=254), Email()])
+                                            Length(min=4, max=254), Email()])
     submit = SubmitField('Reset password')
 
 
@@ -453,12 +460,19 @@ def home():
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 def login():
     form = LoginForm()
+
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     if form.validate_on_submit():
         session.clear()  # To ensure the session is cleared before passing
 
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
 
         # Run encode/decode check functions
@@ -477,43 +491,68 @@ def login():
         # Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
         try:
             passResult = bcrypt.check_password_hash(passwordHash[0], passwordInput)
+            cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
+                           (username, int(passResult), request.remote_addr))
+
+            try:
+                res = cursor.fetchone()
+                global UUID
+
+                user_email = res[0]
+                role_ID = res[1]
+                UUID = res[2]
+            except:
+                # Login failed, so no user email or role ID returned to res
+                user_email = None
+                role_ID = None
+                UUID = None
+
+            conn.commit()
+            conn.close()
+            if user_email is not None:  # Login was successful
+                session['username'] = username
+
+                otpsecret = base64.b32encode(os.urandom(10)).decode('utf-8')
+                session['secret'] = otpsecret
+                totp = pyotp.TOTP(otpsecret)
+
+                # hotp = pyotp.HOTP(otpsecret)
+
+                gmail_send_message(totp.now(), user_email)
+                # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
+                return redirect(url_for('mfa'))
+            else:
+                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                cursor = conn.cursor()
+                insert_stmt = (
+                    "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                    "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+                )
+                data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
+                        f"User login attempt failed")
+
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                conn.close()
+
+                flash("Username or Password incorrect. Please try again")
         except:
             # Would likely occur if there was user had keyed in an invalid username
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
+                    f"User login attempt failed")
+
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            # conn.close()
+
             flash("Username or Password incorrect. Please try again")
             passResult = 0
-
-        cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
-                       (username, int(passResult), request.remote_addr))
-
-        try:
-            res = cursor.fetchone()
-            global UUID
-
-            user_email = res[0]
-            role_ID = res[1]
-            UUID = res[2]
-        except:
-            # Login failed, so no user email or role ID returned to res
-            user_email = None
-            role_ID = None
-            UUID = None
-
-        conn.commit()
-        conn.close()
-        if user_email is not None:  # Login was successful
-            session['username'] = username
-            
-            otpsecret = base64.b32encode(os.urandom(10)).decode('utf-8')
-            session['secret'] = otpsecret
-            totp = pyotp.TOTP(otpsecret)
-            
-            #hotp = pyotp.HOTP(otpsecret)
-
-            gmail_send_message(totp.now(), user_email)
-            # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
-            return redirect(url_for('mfa'))
-        else:
-            flash("Username or Password incorrect. Please try again")
 
     return render_template('login.html', form=form)
 
@@ -525,14 +564,14 @@ def mfa():
     totp = pyotp.TOTP(session['secret'])
     # check if the user exists in the database
     if form.validate_on_submit():
-        #Valid window extends the validity to this many counter ticks before and after the current one
-        #Counter ticks are generally a few miliseconds long
+        # Valid window extends the validity to this many counter ticks before and after the current one
+        # Counter ticks are generally a few miliseconds long
         if totp.verify(form.mfa.data, valid_window=1):
             session['User_ID'] = UUID
             Session_ID = os.urandom(16)
             session['Session_ID'] = Session_ID
 
-            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
             cursor = conn.cursor()
 
             cursor.execute('EXEC create_session %s, %s', (session['username'], Session_ID))
@@ -542,11 +581,52 @@ def mfa():
 
             res = check_session(session['username'], session['Session_ID'])
 
+            hostname = str(socket.gethostname())
+            source_ip = str(get('https://api.ipify.org').text)
+            destination_ip = str(request.remote_addr)
+            browser = str(request.user_agent)
+            time_date_aware = str(datetime.datetime.now(pytz.utc))
+
             if (res[1] == 'Customer'):
+                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                cursor = conn.cursor()
+                insert_stmt = (
+                    "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                    "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+                )
+                data = (time_date_aware, "aunth_login_success", "Info", hostname, source_ip, destination_ip, browser,
+                        f"User {session['User_ID']} login successfully")
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                conn.close()
                 return redirect(url_for('customerdashboard'))
+
             elif (res[1] == 'Staff'):
+                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                cursor = conn.cursor()
+                insert_stmt = (
+                    "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                    "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+                )
+                data = (time_date_aware, "aunth_login_success", "Info", hostname, source_ip, destination_ip, browser,
+                        f"User {session['User_ID']} login successfully")
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                conn.close()
                 return redirect(url_for('staffdashboard'))
+
             elif (res[1] == 'Manager'):
+                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                cursor = conn.cursor()
+                insert_stmt = (
+                    "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                    "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+                )
+                data = (time_date_aware, "aunth_login_success", "Info", hostname, source_ip, destination_ip, browser,
+                        f"User {session['User_ID']} login successfully")
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                conn.close()
                 return redirect(url_for('managerdashboard'))
             else:
                 return render_template('403.html'), 403
@@ -561,8 +641,25 @@ def mfa():
 @app.route("/customerdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Customer'):
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
+                f"An attempt to access the staff dashboard without entitlement was made")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
         return render_template('403.html'), 403
 
     if "username" in session:
@@ -575,8 +672,25 @@ def customerdashboard():
 @app.route("/staffdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def staffdashboard():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Staff'):
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
+                f"An attempt to access the staff dashboard without entitlement was made")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
         return render_template('403.html'), 403
     return render_template('dashboards/staffdashboard.html')
 
@@ -584,8 +698,25 @@ def staffdashboard():
 @app.route("/managerdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def managerdashboard():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Manager'):
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
+                f"An attempt to access the manager dashboard without entitlement was made")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
         return render_template('403.html'), 403
     return render_template('dashboards/managerdashboard.html')
 
@@ -593,13 +724,31 @@ def managerdashboard():
 @app.route("/logout", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can log out
 def logout():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     try:
         check_session(session['username'], session['Session_ID'])
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "aunth_logout_success", "Info", hostname, source_ip, destination_ip, browser,
+                f"User {session['User_ID']} logout successfully")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
     except:
         return render_template('403.html'), 403
     logout_user()  # log the user out
     session.clear()  # Ensure session is cleared
     session.pop('username', None)  # Remove session after user has logout
+
     return redirect(url_for('login'))  # redirect user back to login page
 
 
@@ -607,10 +756,17 @@ def logout():
 def forgetPassword():
     logout_user()  # log the user out
     form = forgotPasswordEmailForm()
+
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     if form.validate_on_submit():
         email = encode(form.email.data)
 
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC check_email %s', form.email.data)
         result = cursor.fetchone()
@@ -618,6 +774,17 @@ def forgetPassword():
         flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
 
         if (result[0] == 1):
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (time_date_aware, "forget_password_email_successful_sent", "Info", hostname, source_ip, destination_ip, browser,
+                    f"Password reset link successfully sent to email {email}")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
             # Email of the user found
             from gapi import create_message, send_message, service
 
@@ -639,6 +806,19 @@ def forgetPassword():
 
         elif (result[0] == 2):
             # email of the user not found, create log with IP here
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (
+            time_date_aware, "forget_password_email_failed_sent", "Warn", hostname, source_ip, destination_ip,
+            browser,
+            f"Password reset link failed to sent to email {email}")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
             ip_addr = request.remote_addr
             pass
 
@@ -658,7 +838,7 @@ def reset_with_token(token):
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
 
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC update_password %s, %s', (email, hashed_password))
         conn.commit()
@@ -673,11 +853,18 @@ def reset_with_token(token):
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
+
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     # Whenever we submit this form, we immediately create a hash version of the password and submit to database
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
 
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -710,8 +897,34 @@ def register():
 
         if res == 2:
             # Stored procedure was ran successfully and user successfully registered
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (
+            time_date_aware, "aunth_create_user_role_id_1", "Warn", hostname, source_ip, destination_ip, browser,
+            f"User {username}(role id 1:Customer) created successfully")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
             return redirect(url_for('registersuccess'))  # redirect to login page after register
         elif res == 1:
+
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (
+                time_date_aware, "input_validation_fail", "Warn", hostname, source_ip, destination_ip, browser,
+                f"Attempt to create new customer account with existing Username : {username} or email : {email}")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
+
             # Stored procedure was ran but failed because username or email is already in use
             # Create log and send email to user
             flash("Username or Email may already be in use. Please try again. ")
@@ -732,7 +945,7 @@ def staffregister():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
 
         # Run encode/decode check functions
         username = encode(form.username.data)
@@ -774,7 +987,7 @@ def customertable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
@@ -788,7 +1001,7 @@ def stafftable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Manager'):
         return render_template('403.html'), 403
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
@@ -804,7 +1017,7 @@ def pendingbookingtable():
         return render_template('403.html'), 403
 
     approve = ApproveBooking()
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     get_bookings = "SELECT * FROM get_pending_bookings"
     cursor.execute(get_bookings)
@@ -821,7 +1034,7 @@ def cancelBooking():
         return render_template('403.html'), 403
 
     delete = deleteBooking()
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     User_UUID = res[0]
     cursor.execute("EXEC get_my_bookings %s", User_UUID)
@@ -837,7 +1050,7 @@ def deleteBookingConfirm(id):
     if (res[1] != 'Customer'):
         return render_template('403.html'), 403
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC delete_bookings %s, %s", (id, res[0]))
     res = cursor.fetchone()
@@ -857,14 +1070,14 @@ def deleteBookingConfirm(id):
 def bookingtable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] == 'Customer'):
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         User_UUID = res[0]
         cursor.execute("EXEC get_my_bookings %s", User_UUID)
         bookings = cursor.fetchall()
         conn.close()
     elif (res[1] == 'Staff'):
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute("EXEC get_bookings")
         bookings = cursor.fetchall()
@@ -882,7 +1095,7 @@ def pendingBookingApprove(id):
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC approve_bookings %s", id)
     print(id)
@@ -896,7 +1109,7 @@ def approvedbookingtable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_approved_bookings")
     bookings = cursor.fetchall()
@@ -919,7 +1132,7 @@ def staffUpdateValue():
         return render_template('403.html'), 403
     username = request.form['username']
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     res = list(cursor.fetchone())
@@ -948,7 +1161,7 @@ def staffUpdateSubmit():
     city = request.form['city']
     contact = request.form['contact']
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d",
                    (username, email, firstname, lastname, address, DOB, country, city, contact))
@@ -971,7 +1184,7 @@ def viewProfile():
     else:
         return redirect(url_for('timeout'))
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -996,7 +1209,7 @@ def editProfile():
 
     if editProfileForm.validate_on_submit():
         passwordInput = encode(editProfileForm.password.data)
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC retrieve_password @username = %s', username)
         passwordHash = cursor.fetchone()
@@ -1034,7 +1247,7 @@ def changepassword():
     else:
         return redirect(url_for('timeout'))
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -1083,6 +1296,25 @@ def staffDeleteSubmit():
 
 @app.route("/timeout")
 def timeout():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    cursor = conn.cursor()
+    insert_stmt = (
+        "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+        "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+    )
+    data = (time_date_aware, "session_expired", "Warn", hostname, source_ip, destination_ip, browser,
+            f"User {session['User_ID']} session timeout")
+
+    cursor.execute(insert_stmt, data)
+    conn.commit()
+    conn.close()
+
     session.clear()  # Ensure session is cleared
     return render_template('timeout.html')
 
@@ -1164,7 +1396,7 @@ def booking():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
 
         room_type = form.room_type.data
@@ -1210,7 +1442,7 @@ def booking():
         conn.commit()
         conn.close()
 
-        if res == 1:  
+        if res == 1:
             # Booking pending approval
             return render_template('STRIPEpayment/payment.html', room_type_string=form.room_type.data,
                                    room_type_id=room_type, start_date=start_date, end_date=end_date, num_days=num_days,
@@ -1225,6 +1457,7 @@ def booking():
 
     return render_template('bookings/bookroom.html', title='Book Rooms', form=form)
 
+
 @app.route('/checkout', methods=['POST', 'GET'])
 def checkout():
     customer = stripe.Customer.create(
@@ -1238,9 +1471,10 @@ def checkout():
         description='Booking Payment'
     )
 
-    amount = session['STRIPEpayment']/100
+    amount = session['STRIPEpayment'] / 100
 
     return render_template('STRIPEpayment/checkout.html', amount=amount)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
