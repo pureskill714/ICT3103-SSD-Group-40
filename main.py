@@ -460,6 +460,13 @@ def home():
 @app.route("/login", methods=['GET', 'POST'])  # Specify if we want this function to only perform what methods
 def login():
     form = LoginForm()
+
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     if form.validate_on_submit():
         session.clear()  # To ensure the session is cleared before passing
 
@@ -484,43 +491,68 @@ def login():
         # Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
         try:
             passResult = bcrypt.check_password_hash(passwordHash[0], passwordInput)
+            cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
+                           (username, int(passResult), request.remote_addr))
+
+            try:
+                res = cursor.fetchone()
+                global UUID
+
+                user_email = res[0]
+                role_ID = res[1]
+                UUID = res[2]
+            except:
+                # Login failed, so no user email or role ID returned to res
+                user_email = None
+                role_ID = None
+                UUID = None
+
+            conn.commit()
+            conn.close()
+            if user_email is not None:  # Login was successful
+                session['username'] = username
+
+                otpsecret = base64.b32encode(os.urandom(10)).decode('utf-8')
+                session['secret'] = otpsecret
+                totp = pyotp.TOTP(otpsecret)
+
+                # hotp = pyotp.HOTP(otpsecret)
+
+                gmail_send_message(totp.now(), user_email)
+                # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
+                return redirect(url_for('mfa'))
+            else:
+                conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+                cursor = conn.cursor()
+                insert_stmt = (
+                    "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                    "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+                )
+                data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
+                        f"User login attempt failed")
+
+                cursor.execute(insert_stmt, data)
+                conn.commit()
+                conn.close()
+
+                flash("Username or Password incorrect. Please try again")
         except:
             # Would likely occur if there was user had keyed in an invalid username
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
+                    f"User login attempt failed")
+
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            # conn.close()
+
             flash("Username or Password incorrect. Please try again")
             passResult = 0
-
-        cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
-                       (username, int(passResult), request.remote_addr))
-
-        try:
-            res = cursor.fetchone()
-            global UUID
-
-            user_email = res[0]
-            role_ID = res[1]
-            UUID = res[2]
-        except:
-            # Login failed, so no user email or role ID returned to res
-            user_email = None
-            role_ID = None
-            UUID = None
-
-        conn.commit()
-        conn.close()
-        if user_email is not None:  # Login was successful
-            session['username'] = username
-
-            otpsecret = base64.b32encode(os.urandom(10)).decode('utf-8')
-            session['secret'] = otpsecret
-            totp = pyotp.TOTP(otpsecret)
-
-            # hotp = pyotp.HOTP(otpsecret)
-
-            gmail_send_message(totp.now(), user_email)
-            # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
-            return redirect(url_for('mfa'))
-        else:
-            flash("Username or Password incorrect. Please try again")
 
     return render_template('login.html', form=form)
 
@@ -787,7 +819,7 @@ def register():
             "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
             "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
         )
-        data = (time_date_aware, "aunth_create_user_role_id_1]", "Warn", hostname, source_ip, destination_ip, browser,
+        data = (time_date_aware, "aunth_create_user_role_id_1", "Warn", hostname, source_ip, destination_ip, browser,
                 f"User {username}(role id 1:Customer) created successfully")
         cursor.execute(insert_stmt, data)
         conn.commit()
@@ -797,6 +829,20 @@ def register():
             # Stored procedure was ran successfully and user successfully registered
             return redirect(url_for('registersuccess'))  # redirect to login page after register
         elif res == 1:
+
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (
+                time_date_aware, "input_validation_fail", "Warn", hostname, source_ip, destination_ip, browser,
+                f"Attempt to create new customer account with existing Username : {username} or email : {email}")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
+
             # Stored procedure was ran but failed because username or email is already in use
             # Create log and send email to user
             flash("Username or Email may already be in use. Please try again. ")
@@ -1168,6 +1214,25 @@ def staffDeleteSubmit():
 
 @app.route("/timeout")
 def timeout():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    cursor = conn.cursor()
+    insert_stmt = (
+        "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+        "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+    )
+    data = (time_date_aware, "session_expired", "Warn", hostname, source_ip, destination_ip, browser,
+            f"User {session['User_ID']} session timeout")
+
+    cursor.execute(insert_stmt, data)
+    conn.commit()
+    conn.close()
+
     session.clear()  # Ensure session is cleared
     return render_template('timeout.html')
 
