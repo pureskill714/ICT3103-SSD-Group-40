@@ -655,7 +655,7 @@ def customerdashboard():
             "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
             "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
         )
-        data = (time_date_aware, "authorization_failed", "Info", hostname, source_ip, destination_ip, browser,
+        data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
                 f"An attempt to access the staff dashboard without entitlement was made")
         cursor.execute(insert_stmt, data)
         conn.commit()
@@ -686,7 +686,7 @@ def staffdashboard():
             "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
             "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
         )
-        data = (time_date_aware, "authorization_failed", "Info", hostname, source_ip, destination_ip, browser,
+        data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
                 f"An attempt to access the staff dashboard without entitlement was made")
         cursor.execute(insert_stmt, data)
         conn.commit()
@@ -712,7 +712,7 @@ def managerdashboard():
             "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
             "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
         )
-        data = (time_date_aware, "authorization_failed", "Info", hostname, source_ip, destination_ip, browser,
+        data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
                 f"An attempt to access the manager dashboard without entitlement was made")
         cursor.execute(insert_stmt, data)
         conn.commit()
@@ -756,6 +756,13 @@ def logout():
 def forgetPassword():
     logout_user()  # log the user out
     form = forgotPasswordEmailForm()
+
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     if form.validate_on_submit():
         email = encode(form.email.data)
 
@@ -767,6 +774,17 @@ def forgetPassword():
         flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
 
         if (result[0] == 1):
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (time_date_aware, "forget_password_email_successful_sent", "Info", hostname, source_ip, destination_ip, browser,
+                    f"Password reset link successfully sent to email {email}")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
             # Email of the user found
             from gapi import create_message, send_message, service
 
@@ -788,6 +806,19 @@ def forgetPassword():
 
         elif (result[0] == 2):
             # email of the user not found, create log with IP here
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (
+            time_date_aware, "forget_password_email_failed_sent", "Warn", hostname, source_ip, destination_ip,
+            browser,
+            f"Password reset link failed to sent to email {email}")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
             ip_addr = request.remote_addr
             pass
 
@@ -864,20 +895,20 @@ def register():
         conn.commit()
         conn.close()
 
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
-        cursor = conn.cursor()
-        insert_stmt = (
-            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
-            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
-        )
-        data = (time_date_aware, "aunth_create_user_role_id_1", "Warn", hostname, source_ip, destination_ip, browser,
-                f"User {username}(role id 1:Customer) created successfully")
-        cursor.execute(insert_stmt, data)
-        conn.commit()
-        conn.close()
-
         if res == 2:
             # Stored procedure was ran successfully and user successfully registered
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+            cursor = conn.cursor()
+            insert_stmt = (
+                "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+                "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+            )
+            data = (
+            time_date_aware, "aunth_create_user_role_id_1", "Warn", hostname, source_ip, destination_ip, browser,
+            f"User {username}(role id 1:Customer) created successfully")
+            cursor.execute(insert_stmt, data)
+            conn.commit()
+            conn.close()
             return redirect(url_for('registersuccess'))  # redirect to login page after register
         elif res == 1:
 
