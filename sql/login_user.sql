@@ -31,7 +31,7 @@ BEGIN
 			SET Last_Logon_Time = GETDATE(), Last_Logon_IP = @IP_Address, No_Of_Logons = No_Of_Logons + 1, No_Of_Attempts = 0
 			WHERE Username = @username
 
-			SELECT TOP 1 email, Role_ID, User_UUID
+			SELECT TOP 1 email, User_UUID
 			FROM Users
 			WHERE Username = @username
 		END
@@ -57,3 +57,5 @@ SELECT @return, @emailMFA, @role_id
 SELECT * FROM dbo.Users
 GO
 */
+
+SELECT * FROM Users
