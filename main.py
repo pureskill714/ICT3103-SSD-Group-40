@@ -641,8 +641,25 @@ def mfa():
 @app.route("/customerdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def customerdashboard():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Customer'):
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "authorization_failed", "Info", hostname, source_ip, destination_ip, browser,
+                f"An attempt to access the staff dashboard without entitlement was made")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
         return render_template('403.html'), 403
 
     if "username" in session:
@@ -655,8 +672,25 @@ def customerdashboard():
 @app.route("/staffdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def staffdashboard():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Staff'):
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "authorization_failed", "Info", hostname, source_ip, destination_ip, browser,
+                f"An attempt to access the staff dashboard without entitlement was made")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
         return render_template('403.html'), 403
     return render_template('dashboards/staffdashboard.html')
 
@@ -664,8 +698,25 @@ def staffdashboard():
 @app.route("/managerdashboard", methods=['GET', 'POST'])
 # @login_required  # ensure is logged then, only then can access the dashboard
 def managerdashboard():
+    hostname = str(socket.gethostname())
+    source_ip = str(get('https://api.ipify.org').text)
+    destination_ip = str(request.remote_addr)
+    browser = str(request.user_agent)
+    time_date_aware = str(datetime.datetime.now(pytz.utc))
+
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Manager'):
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        cursor = conn.cursor()
+        insert_stmt = (
+            "INSERT INTO Logs (datetime,event,security_level,hostname,source_address,destination_address,browser,description)"
+            "VALUES (%s,%s, %s, %s, %s, %s, %s, %s)"
+        )
+        data = (time_date_aware, "authorization_failed", "Info", hostname, source_ip, destination_ip, browser,
+                f"An attempt to access the manager dashboard without entitlement was made")
+        cursor.execute(insert_stmt, data)
+        conn.commit()
+        conn.close()
         return render_template('403.html'), 403
     return render_template('dashboards/managerdashboard.html')
 
