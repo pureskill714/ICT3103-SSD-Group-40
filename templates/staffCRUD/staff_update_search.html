@@ -4,11 +4,11 @@
 
 <h1>Enter the username of the staff you want to update</h1>
 
-<form action="/staffupdatevalue" method="POST">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-  <label>Employee Username:</label>
-  <input name="username">
-  <input type="submit" value="Submit">
+<form action="{{ url_for('staffUpdateValue') }}" method="POST">
+  {{ form.csrf_token() }}
+  {{ form.username.label }}
+  {{ form.username(class_="form-control form-control-lg" + (" is-invalid" if form.username.errors else "") + "", placeholder="Enter your username") }}
+  {{ form.submit(class="btn btn-lg btn-primary") }}
 </form>
 
 </body>
