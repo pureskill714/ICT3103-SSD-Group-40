@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_customer.html" %}
 {% block css %}
 <link href="{{ url_for('static',filename='css/tablestyle.css') }}" rel="stylesheet">
 {% endblock %}
@@ -8,7 +8,17 @@
         <br>
       <h1>Delete Bookings</h1>
         <h2>You may only delete bookings at least 7 days from now.</h2>
+<br>
+                                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
 
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
       <div class="table-responsive custom-table-responsive">
 
         <table class="table custom-table">
@@ -26,6 +36,8 @@
           </thead>
           <tbody>
                 {% for booking in bookings %}
+     <form action = "{{url_for('deleteBookingConfirm', id=booking[7])}}" method = "POST">
+
     <tr scope="row">
           {{ delete.csrf_token }} <!-- generates a random hidden field used to protect against CSRF attacks-->
         <td>{{ booking[0] }}</td>
@@ -35,7 +47,8 @@
         <td>{{ booking[4] }}</td>
         <td>{{ booking[5] }}</td>
         <td>{{ delete.deleteButton(class="btn btn-sm submit-btn bg-danger") }}</button></td>
-    </tr>
+
+    </tr></form>
                 <tr class="spacer"><td colspan="100"></td></tr>
        {% endfor %}
 

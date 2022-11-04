@@ -851,7 +851,7 @@ def deleteBookingConfirm(id):
         # successfully cancelled
         return render_template('bookings/deletebookingsuccess.html')
     else:
-        flash("Error occured, you cannot cancel any bookings within 7 days")
+        flash("You cannot cancel any bookings within 7 days", 'danger')
         return redirect(url_for('cancelBooking'))
 
 
@@ -890,6 +890,7 @@ def pendingBookingApprove(id):
     print(id)
     conn.commit()
     conn.close()
+    
     return render_template('bookings/bookingapproved.html')
 
 

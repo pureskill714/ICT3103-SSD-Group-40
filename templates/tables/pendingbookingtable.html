@@ -1,41 +1,45 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>table</title>
-    <style>
-        table{
-            border-collapse: collapse;
-            width: 100%;
-        }
-    th,td{
-        border: 2px solid green;
-        padding: 15px;
-    }
+{% extends "base_staff.html" %}
+{% block css %}
+<link href="{{ url_for('static',filename='css/tablestyle.css') }}" rel="stylesheet">
 
-    </style>
-  </head>
+{% endblock %}
+{% block content %}
 
-<body>
-<center>
-<h1>Pending Bookings Table</h1>
-</center>
-  <table>
-    <tr>
-        <th>First Name</th>
-        <th>Last Name</th>
-        <th>Customer's Contact</th>
-        <th>Room Number</th>
-        <th>Room Type</th>
-        <th>Start Date</th>
-        <th>End Date</th>
-        <th>Booking Status</th>
-        <th>Booked at</th>
-        <th>Staff Approval</th>
-    </tr>
-      {% for booking in bookings %}
+    <div class="container">
+        <br>
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
 
-        <form action = "{{url_for('pendingBookingApprove',id=booking[10])}}" method = "POST">
-    <tr>
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
+      <h2>Pending Bookings Table</h2>
+
+      <div class="table-responsive custom-table-responsive">
+
+        <table class="table custom-table">
+          <thead>
+            <tr>
+        <th scope="col">First Name</th>
+        <th scope="col">Last Name</th>
+        <th scope="col">Customer's Contact</th>
+        <th scope="col">Room Number</th>
+        <th scope="col">Room Type</th>
+        <th scope="col">Start Date</th>
+        <th scope="col">End Date</th>
+        <th scope="col">Booking Status</th>
+        <th scope="col">Booked at</th>
+        <th scope="col">Staff Approval</th>
+            </tr>
+          </thead>
+          <tbody>
+                {% for booking in bookings %}
+                <form action = "{{url_for('pendingBookingApprove',id=booking[10])}}" method = "POST">
+    <tr scope="row">
           {{ approve.csrf_token }} <!-- generates a random hidden field used to protect against CSRF attacks-->
         <td>{{ booking[0] }}</td>
         <td>{{ booking[1] }}</td>
@@ -46,11 +50,17 @@
         <td>{{ booking[6] }}</td>
         <td>{{ booking[7] }}</td>
         <td>{{ booking[9] }}</td>
-        <td>{{ approve.approveButton }}</button></td>
+        <td>{{ approve.approveButton(class="btn btn-sm submit-btn bg-success") }}</button></td>
     </tr>
-      </form>
+                    </form>
+                <tr class="spacer"><td colspan="100"></td></tr>
        {% endfor %}
 
-</table>
-</body>
-</html>
+
+          </tbody>
+        </table>
+      </div>
+
+
+    </div>
+{% endblock %}
