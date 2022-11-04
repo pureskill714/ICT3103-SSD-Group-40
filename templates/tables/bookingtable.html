@@ -1,35 +1,30 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>table</title>
-    <style>
-        table{
-            border-collapse: collapse;
-            width: 100%;
-        }
-    th,td{
-        border: 2px solid green;
-        padding: 15px;
-    }
+{% extends "base_customer.html" %}
+{% block css %}
+<link href="{{ url_for('static',filename='css/tablestyle.css') }}" rel="stylesheet">
 
-    </style>
-  </head>
+{% endblock %}
+{% block content %}
 
-<body>
-<center>
-<h1>Bookings Table</h1>
-</center>
-  <table>
-    <tr>
-        <th>Room Number</th>
-        <th>Room Type</th>
-        <th>Start Date</th>
-        <th>End Date</th>
-        <th>Booking Status</th>
-        <th>Booking Made On:</th>
-    </tr>
-      {% for booking in bookings %}
-    <tr>
+    <div class="container">
+        <br>
+      <h2>Bookings</h2>
+
+      <div class="table-responsive custom-table-responsive">
+
+        <table class="table custom-table">
+          <thead>
+            <tr>
+              <th scope="col">Room Number</th>
+        <th scope="col">Room Type</th>
+        <th scope="col">Start Date</th>
+        <th scope="col">End Date</th>
+        <th scope="col">Booking Status</th>
+        <th scope="col">Booking Made On:</th>
+            </tr>
+          </thead>
+          <tbody>
+                {% for booking in bookings %}
+    <tr scope="row">
         <td>{{ booking[0] }}</td>
         <td>{{ booking[1] }}</td>
         <td>{{ booking[2] }}</td>
@@ -37,9 +32,14 @@
         <td>{{ booking[4] }}</td>
         <td>{{ booking[5] }}</td>
     </tr>
-      </form>
+                <tr class="spacer"><td colspan="100"></td></tr>
        {% endfor %}
 
-</table>
-</body>
-</html>
+
+          </tbody>
+        </table>
+      </div>
+
+
+    </div>
+{% endblock %}

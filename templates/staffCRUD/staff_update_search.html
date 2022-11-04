@@ -1,15 +1,51 @@
-<!DOCTYPE html>
-<html>
-<body>
+{% extends "base_manager.html" %}
+{% block content %}
+<br>
+<div class="container h-100">
+    <div class="row h-100">
+        <div class="col-sm-10 col-md-8 col-lg-6 mx-auto d-table h-100">
+            <div class="d-table-cell align-middle">
 
-<h1>Enter the username of the staff you want to update</h1>
+                <div class="text-center mt-4">
+                    <h2>Update Staff Details</h2>
+                    <p class="lead">
+                        Enter the username of the staff you want to update
+                    </p>
+                </div>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" role="alert">
+                    {{ message }}
+                </div>
 
-<form action="/staffupdatevalue" method="POST">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-  <label>Employee Username:</label>
-  <input name="username">
-  <input type="submit" value="Submit">
-</form>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="m-sm-4">
+                            <form action="{{ url_for('staffUpdateValue') }}" method="post">
+                                {{ form.csrf_token() }}
+                                <div class="form-group">
+                                    {{ form.username.label }}
+                                    {{ form.username(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.username.errors else "") + "", placeholder="Enter your username") }}
+                                </div>
+                                {% for error in form.username.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
 
-</body>
-</html>
+                                <div class="text-center mt-3">
+                                    {{ form.submit(class="btn btn-lg btn-primary") }}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

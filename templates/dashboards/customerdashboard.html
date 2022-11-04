@@ -1,48 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <!-- Designed by:LjoveX
-         It is 100% free to use-->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta name="description" content="Dobro dosli u najbolji kafic na svetu">
-    <meta name="keywords" content="Kafic">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
-    <link rel="stylesheet" href="static/css/style.css">
-    <title>Logged In</title>
-</head>
-<body>
-    <header>
-        <nav id="navbar">
-        <div class="container">
-                <h1 class="logo">The Cozy Inn Hotel</h1>
-                <ul>
-                    <li><a href="{{url_for('customerdashboard')}}">Home</a></li>
-                    <li><a href="{{url_for('booking')}}">Book Room</a></li>
-                    <li><a href="{{url_for('viewProfile')}}">Profile</a></li>
-                    <li><a href="{{url_for('bookingtable')}}">View My Reservation</a></li>
-                    <li><a href="{{url_for('cancelBooking')}}">Cancel Bookings</a></li>
-                    <li><a href="{{url_for('logout')}}">Log Out</a></li>
-                </ul>
-              </div>
-            </nav>
+{% extends "base_customer.html" %}
+
+{% block content %}
+
 
          <div id="showcase">
            <div class="container">
                <div class="showcase-content">
                    <h1>Welcome {{username}}! You are logged In! </h1>
-                   <h1><span class="text-primary">Enjoy</span> your stay</h1>
+                   <h1><span class="text-primary-1">Enjoy</span> your stay</h1>
                    <p class="lead">The Cozy Inn welcomes you to have a fantastic time here</p>
                    <a class="btn" href="about.html">About our hotel</a>
                </div>
            </div>
          </div>
-    </header>
+
     <section id="home-info" class="bg-dark">
         <div class="info-img"></div>
         <div class="info-content">
-          <h2><span class="text-primary">History</span> of out Hotel</h2>
+          <h2><span class="text-primary-1">History</span> of out Hotel</h2>
           <p>
               Founded in 2010, The Cozy Inn is the built with hospitality and affordability in mind,
               making it one of the best affordable 5 star hotels in the country
@@ -56,7 +31,7 @@
                <h3>Great Location</h3>
                <p>Many restauraunts,parks and sightseeing locations are very near the Cozy Inn.</p>
            </div>
-           <div class="box bg-primary">
+           <div class="box bg-primary-1">
             <i class="fas fa-utensils fa-3x"></i>
             <h3>Free Meals</h3>
             <p>Free breakfast and lunch every day here at the Cozy Inn with a buffet style serving.</p>
@@ -69,5 +44,5 @@
        </section>
        <footer id="main-footer">
        </footer>
-</body>
-</html>
+
+{% endblock %}
