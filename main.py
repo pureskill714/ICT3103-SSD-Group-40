@@ -56,6 +56,8 @@ from requests import get
 
 from gapi import create_message, send_message, service
 
+load_dotenv()
+
 data1 = os.urandom(16)
 secret = "secretcode"
 code = bytes(secret, "utf-8")
@@ -65,8 +67,10 @@ seckey = data1 + data3  # Random 16bytes+base64
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
-app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdMHXAiAAAAACouP_eGKx_x6KYgrAwnPIQUIpNe'
-app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdMHXAiAAAAAP3uAfsgPERmaMdA9ITnVIK1vn9W'
+recaptcha_public_key = os.getenv('recaptcha_public_key')
+app.config['RECAPTCHA_PUBLIC_KEY'] = f'{recaptcha_public_key}'
+recaptcha_private_key=os.getenv('recaptcha_private_key')
+app.config['RECAPTCHA_PRIVATE_KEY'] = f'{recaptcha_private_key}'
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
 
@@ -86,7 +90,7 @@ app.config.update(
     SESSION_COOKIE_DOMAIN=False
 )
 
-load_dotenv()
+
 
 def gmail_send_message(otp, emailadd):
     creds = None
@@ -471,7 +475,7 @@ class StaffUpdateForm(FlaskForm):
     country = StringField(validators=[Length(max=128)])
     city = StringField(validators=[Length(max=128)])
     address = StringField(validators=[Length(max=255)])
-    dob = DateField("Date of Brith", validators=[validators.Optional()])
+    dob = DateField("Date of Birth", validators=[validators.Optional()])
 
     # For users to enter their contact number
     contact = IntegerField('Contact Number', validators=[InputRequired()])
