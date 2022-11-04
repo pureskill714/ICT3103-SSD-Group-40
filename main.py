@@ -170,7 +170,7 @@ def load_user_customer(user_id):
 def check_session(username, session_ID):
     username = encode(username)
     session_ID = session_ID
-    conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute('EXEC check_session %s, %s', (username, session_ID))
 
@@ -511,7 +511,7 @@ def login():
 
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
 
         # Run encode/decode check functions
@@ -763,7 +763,7 @@ def forgetPassword():
     if form.validate_on_submit():
         email = encode(form.email.data)
 
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC check_email %s', form.email.data)
         result = cursor.fetchone()
@@ -788,7 +788,7 @@ def forgetPassword():
             salt = os.urandom(32)
             token = ts.dumps(email, salt)
 
-            conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+            conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
             cursor = conn.cursor()
             cursor.execute('EXEC update_token_reset %s, %s', (email, token))
             conn.commit()
@@ -828,7 +828,7 @@ def reset_with_token(token):
     try:
         email = ts.loads(token, salt=salt, max_age=360)
         # check database for token
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC retrieve_token_reset @Email = %s', email)
         token_check = cursor.fetchone()
@@ -847,7 +847,7 @@ def reset_with_token(token):
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
 
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC update_password %s, %s', (email, hashed_password))
         conn.commit()
@@ -955,7 +955,7 @@ def staffregister():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
 
         # Run encode/decode check functions
         username = encode(form.username.data)
@@ -1027,7 +1027,7 @@ def pendingbookingtable():
         return render_template('403.html'), 403
 
     approve = ApproveBooking()
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     get_bookings = "SELECT * FROM get_pending_bookings"
     cursor.execute(get_bookings)
@@ -1044,7 +1044,7 @@ def cancelBooking():
         return render_template('403.html'), 403
 
     delete = deleteBooking()
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     User_UUID = res[0]
     cursor.execute("EXEC get_my_bookings %s", User_UUID)
@@ -1060,7 +1060,7 @@ def deleteBookingConfirm(id):
     if (res[1] != 'Customer'):
         return render_template('403.html'), 403
 
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC delete_bookings %s, %s", (id, res[0]))
     res = cursor.fetchone()
@@ -1080,14 +1080,14 @@ def deleteBookingConfirm(id):
 def bookingtable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] == 'Customer'):
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         User_UUID = res[0]
         cursor.execute("EXEC get_my_bookings %s", User_UUID)
         bookings = cursor.fetchall()
         conn.close()
     elif (res[1] == 'Staff'):
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM get_bookings")
         bookings = cursor.fetchall()
@@ -1105,7 +1105,7 @@ def pendingBookingApprove(id):
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
 
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC approve_bookings %s", id)
     conn.commit()
@@ -1146,14 +1146,14 @@ def staffUpdateValue():
     cursor = conn.cursor()
     username = encode(search_form.username.data)
     cursor.execute("EXEC staff_details %s", username)
-    details = cursor.fetchone()
-    if details:
-        return render_template('staffCRUD/staff_update_value.html', update_form=update_form, details=details,
+    user = cursor.fetchone()
+    if user:
+        return render_template('staffCRUD/staff_update_value.html', update_form=update_form, user=user,
                                username=username)
         con.close()
     else:
-        flash('No such user found. Please refer to stafftable to find the list of staff users')
-        return render_template('staffCRUD/staff_update_search.html', search_form=search_form)
+        flash('No such user found. Please refer to stafftable to find the list of staff users',"danger")
+        return render_template('staffCRUD/staff_update_search.html', form=search_form)
     conn.close()
 
     # return render_template('staffCRUD/staff_update_value.html', update_form=update_form, details=details, username=username)
@@ -1210,7 +1210,7 @@ def viewProfile():
     else:
         return redirect(url_for('timeout'))
 
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -1231,7 +1231,7 @@ def editProfile():
     username = session["username"]
     if editProfileForm.validate_on_submit():
         passwordInput = encode(editProfileForm.password.data)
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
         cursor.execute('EXEC retrieve_password @username = %s', username)
         passwordHash = cursor.fetchone()
@@ -1278,7 +1278,7 @@ def changepassword():
     else:
         return redirect(url_for('timeout'))
 
-    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -1352,70 +1352,70 @@ def timeout():
     return render_template('timeout.html')
 
 
-# # 400 - To handle Bad request
-# @app.route('/400')
-# def error400():
-#     abort(400)
-#
-#
-# # 401 - To handle error of Unauthorized request
-# @app.route('/401')
-# def error401():
-#     abort(401)
-#
-#
-# # 404 - To handle error in matching the Request URL
-# @app.route('/404')
-# def error404():
-#     abort(404)
-#
-#
-# # 500 - To handle error in Internal Server Error
-# @app.route('/500')
-# def error500():
-#     abort(500)
-#
-#
-# # To direct to 400 page
-# @app.errorhandler(400)
-# def unauthorized_page(error):
-#     return render_template('400.html'), 400
-#
-#
-# # To direct to 401 page
-# @app.errorhandler(401)
-# def unauthorized_page(error):
-#     return render_template('401.html'), 401
-#
-#
-# # To direct to 404 page
-# @app.errorhandler(404)
-# def page_not_found(error):
-#     return render_template('404.html'), 404
-#
-#
-# # To direct to 500 page
-# @app.errorhandler(500)
-# def internal_error(error):
-#     return render_template('500.html'), 500
-#
-#
-# # To direct to CSRF validation error
-# @app.errorhandler(CSRFError)
-# def handle_csrf_error(error):
-#     return render_template('403.html'), 403
-#
-#
-# # To handle index error
-# @app.errorhandler(IndexError)
-# def index_error(error):
-#     return render_template('500.html'), 500
-#
-#
-# # To handle exception error
-# @app.errorhandler(Exception)
-# def operational_error(error):
-#     return render_template('403.html'), 403
+# 400 - To handle Bad request
+@app.route('/400')
+def error400():
+    abort(400)
+
+
+# 401 - To handle error of Unauthorized request
+@app.route('/401')
+def error401():
+    abort(401)
+
+
+# 404 - To handle error in matching the Request URL
+@app.route('/404')
+def error404():
+    abort(404)
+
+
+# 500 - To handle error in Internal Server Error
+@app.route('/500')
+def error500():
+    abort(500)
+
+
+# To direct to 400 page
+@app.errorhandler(400)
+def unauthorized_page(error):
+    return render_template('400.html'), 400
+
+
+# To direct to 401 page
+@app.errorhandler(401)
+def unauthorized_page(error):
+    return render_template('401.html'), 401
+
+
+# To direct to 404 page
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('404.html'), 404
+
+
+# To direct to 500 page
+@app.errorhandler(500)
+def internal_error(error):
+    return render_template('500.html'), 500
+
+
+# To direct to CSRF validation error
+@app.errorhandler(CSRFError)
+def handle_csrf_error(error):
+    return render_template('403.html'), 403
+
+
+# To handle index error
+@app.errorhandler(IndexError)
+def index_error(error):
+    return render_template('500.html'), 500
+
+
+# To handle exception error
+@app.errorhandler(Exception)
+def operational_error(error):
+    return render_template('403.html'), 403
 
 
 @app.route("/booking", methods=['GET', 'POST'])
@@ -1429,7 +1429,7 @@ def booking():
     if form.validate_on_submit():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
         cursor = conn.cursor()
 
         room_type = form.room_type.data

@@ -36,14 +36,6 @@
                                 <span style="color: red;">{{ error }}</span>
                                 {% endfor %}
 
-                                {% with messages = get_flashed_messages() %}
-                                {% if messages %}
-                                {% for message in messages %}
-                                {{ message }}
-                                {% endfor %}
-                                {% endif %}
-                                {% endwith %}
-
                                 <div class="text-center mt-3">
                                     {{ form.submit(class="btn btn-lg btn-primary") }}
                                 </div>
