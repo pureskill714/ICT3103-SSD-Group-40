@@ -62,7 +62,7 @@ data1 = os.urandom(16)
 secret = "secretcode"
 code = bytes(secret, "utf-8")
 data3 = base64.b64encode(code)
-seckey = data1 + data3  # Random 16bytes+base64
+seckey = data1 + data3  # Random seckey generator (16bytes+base64)
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
@@ -73,10 +73,11 @@ app.config['RECAPTCHA_PUBLIC_KEY'] = f'{recaptcha_public_key}'
 app.config['RECAPTCHA_PRIVATE_KEY'] = f'{recaptcha_private_key}'
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
-
+secret_key = os.getenv("secret_key")
+publishable_key = os.getenv("publishable_key")
 stripe_keys = {
-    'secret_key': "sk_test_51LyqY9EsefqfyEMpEdDt2yqYyWnOdWuVrKXaz81Z6pviQZGp6fOepWIO2iqkloxuKnHyXCkEMEEytaeUiZRiBCMO00obWmTQlE",
-    'publishable_key': "pk_test_51LyqY9EsefqfyEMpZFIUI5eydUQKyZpNqyays3S463Hz4TEHrXCN7Yyk0dlgB7M2pkjnF1NtsdHSwWfaCmCeZvCY00yk4perh9"
+    'secret_key': f"{secret_key}",
+    'publishable_key': f"{publishable_key}"
 }
 
 stripe.api_key = stripe_keys['secret_key']
