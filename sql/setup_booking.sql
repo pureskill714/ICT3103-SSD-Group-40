@@ -23,6 +23,11 @@ BEGIN
 			SELECT TOP 1 @RoomID = Room_ID FROM #TempRooms
 			SELECT TOP 1 @user_id = user_ID FROM Users WHERE User_UUID = CONVERT(UNIQUEIDENTIFIER, @user_UUID)
 
+			IF ((SELECT COUNT(1) FROM Bookings WHERE User_ID = 1) > 4)
+				BEGIN
+					SELECT 3
+					RETURN 3
+				END
 			EXEC @return = [create_booking] @user_ID, @RoomID, @booking_details, @start_date, @end_date
 			IF @return = 1
 			BEGIN
@@ -42,10 +47,9 @@ GO
 
 
 DECLARE @return2 INT
-EXEC @return2 = [setup_booking] '8FB418AC-8849-4DAA-A0EE-1ED8A35A8538', '3', '', '2024-10-30', '2024-11-5' 
+EXEC @return2 = [setup_booking] '590C959D-6934-4C71-AF61-C1FC8000DEA0', '3', '', '2024-10-30', '2024-11-5' 
 
 SELECT @return2
 
-SELECT * FROM Rooms
 SELECT * FROM Bookings
 
