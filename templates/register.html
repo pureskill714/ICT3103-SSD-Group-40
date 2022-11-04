@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "home_base.html" %}
 
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/core@2.0.0/dist/zxcvbn-ts.js"></script>
@@ -18,12 +18,12 @@
                 </div>
                 {% with messages = get_flashed_messages() %}
                 {% if messages %}
-                    {% for message in messages %}
-                    <div class="alert alert-success" role="alert">
-                        {{ message }}
-                    </div>
+                {% for message in messages %}
+                <div class="alert alert-success" role="alert">
+                    {{ message }}
+                </div>
 
-                    {% endfor %}
+                {% endfor %}
                 {% endif %}
                 {% endwith %}
                 <div class="card">
@@ -33,54 +33,59 @@
                                 {{ form.csrf_token }}
                                 <div class="form-group">
                                     {{ form.firstname.label }}
-                                    {{ form.firstname(class_="form-control form-control-lg" + (" is-invalid" if form.firstname.errors else "") + "", placeholder="Enter your first name") }}
+                                    {{ form.firstname(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.firstname.errors else "") + "", placeholder="Enter your first name") }}
                                 </div>
                                 {% for error in form.firstname.errors %}
                                 <span style="color: red;">{{ error }}</span>
                                 {% endfor %}
                                 <div class="form-group">
                                     {{ form.lastname.label }}
-                                    {{ form.lastname(class_="form-control form-control-lg" + (" is-invalid" if form.lastname.errors else "") + "", placeholder="Enter your last name") }}
+                                    {{ form.lastname(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.lastname.errors else "") + "", placeholder="Enter your last name") }}
                                 </div>
                                 {% for error in form.lastname.errors %}
                                 <span style="color: red;">{{ error }}</span>
                                 {% endfor %}
                                 <div class="form-group">
                                     {{ form.email.label }}
-                                    {{ form.email(class_="form-control form-control-lg" + (" is-invalid" if form.email.errors else "") + "", placeholder="Enter your email") }}
+                                    {{ form.email(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.email.errors else "") + "", placeholder="Enter your email") }}
                                 </div>
                                 {% for error in form.email.errors %}
                                 <span style="color: red;">{{ error }}</span>
                                 {% endfor %}
                                 <div class="form-group">
                                     {{ form.username.label }}
-                                    {{ form.username(class_="form-control form-control-lg" + (" is-invalid" if form.username.errors else "") + "", placeholder="Enter your username") }}
+                                    {{ form.username(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.username.errors else "") + "", placeholder="Enter your username") }}
                                 </div>
                                 {% for error in form.username.errors %}
                                 <span style="color: red;">{{ error }}</span>
                                 {% endfor %}
                                 <div class="form-group">
                                     {{ form.password.label }}
-                                    {{ form.password(class_="form-control form-control-lg" + (" is-invalid" if form.password.errors else "") + "", placeholder="Enter your password") }}
-                                    <div id="password-bar" class="row d-none">
+                                    {{ form.password(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.password.errors else "") + "", placeholder="Enter your password") }}
+                                    <div class="row d-none" id="password-bar">
                                         <p><span></span></p>
                                         <div class="col-6">
                                             <div class="progress">
-                                            <div id="password-strength"
-                                                class="progress-bar"
-                                                role="progressbar"
-                                                 aria-valuenow="0"
-                                                aria-valuemin="0"
-                                                aria-valuemax="10"
-                                                style="width:0%">
+                                                <div aria-valuemax="10"
+                                                     aria-valuemin="0"
+                                                     aria-valuenow="0"
+                                                     class="progress-bar"
+                                                     id="password-strength"
+                                                     role="progressbar"
+                                                     style="width:0%">
+                                                </div>
                                             </div>
-                                        </div>
                                         </div>
                                         <div class="col-6 text-end">
                                             <small class="form-text text-muted">
-                                            Password strength:
+                                                Password strength:
                                             </small>
-                                            <p id="password-strength-text" class="d-inline font-weight-bold"></p>
+                                            <p class="d-inline font-weight-bold" id="password-strength-text"></p>
                                         </div>
                                     </div>
                                 </div>
@@ -89,26 +94,27 @@
                                 {% endfor %}
                                 <div class="form-group">
                                     {{ form.password_confirm.label }}
-                                    {{ form.password_confirm(class_="form-control form-control-lg" + (" is-invalid" if form.password_confirm.errors else "") + "", placeholder="Confirm your password") }}
-                                     <div id="password-bar2" class="row d-none">
+                                    {{ form.password_confirm(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.password_confirm.errors else "") + "", placeholder="Confirm your password") }}
+                                    <div class="row d-none" id="password-bar2">
                                         <p><span></span></p>
                                         <div class="col-6">
                                             <div class="progress">
-                                            <div id="password-strength2"
-                                                class="progress-bar"
-                                                role="progressbar"
-                                                 aria-valuenow="0"
-                                                aria-valuemin="0"
-                                                aria-valuemax="10"
-                                                style="width:0%">
+                                                <div aria-valuemax="10"
+                                                     aria-valuemin="0"
+                                                     aria-valuenow="0"
+                                                     class="progress-bar"
+                                                     id="password-strength2"
+                                                     role="progressbar"
+                                                     style="width:0%">
+                                                </div>
                                             </div>
-                                        </div>
                                         </div>
                                         <div class="col-6 text-end">
                                             <small class="form-text text-muted">
-                                            Password strength:
+                                                Password strength:
                                             </small>
-                                            <p id="password-strength-text2" class="d-inline font-weight-bold"></p>
+                                            <p class="d-inline font-weight-bold" id="password-strength-text2"></p>
                                         </div>
                                     </div>
                                 </div>
@@ -117,7 +123,8 @@
                                 {% endfor %}
                                 <div class="form-group">
                                     {{ form.contact.label }}
-                                    {{ form.contact(class_="form-control form-control-lg" + (" is-invalid" if form.contact.errors else "") + "", placeholder="Enter your mobile number") }}
+                                    {{ form.contact(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.contact.errors else "") + "", placeholder="Enter your mobile number") }}
                                 </div>
                                 {% for error in form.contact.errors %}
                                 <span style="color: red;">{{ error }}</span>
@@ -125,13 +132,13 @@
 
                                 <div class="text-center mt-3">
                                     {{ form.submit(class="btn btn-lg btn-primary") }}
-<!--                                    <button-->
-<!--                                        type="reset"-->
-<!--                                        name="reset"-->
-<!--                                        value="Reset"-->
-<!--                                        class="btn btn-light"-->
-<!--                                        autocomplete="off"-->
-<!--                                    >Clear</button>-->
+                                    <!--                                    <button-->
+                                    <!--                                        type="reset"-->
+                                    <!--                                        name="reset"-->
+                                    <!--                                        value="Reset"-->
+                                    <!--                                        class="btn btn-light"-->
+                                    <!--                                        autocomplete="off"-->
+                                    <!--                                    >Clear</button>-->
                                 </div>
                             </form>
                         </div>
@@ -149,55 +156,55 @@
     let passwordBar = document.getElementById('password-bar');
     let passwordStrength = document.getElementById("password-strength");
     let text = document.getElementById('password-strength-text');
-    password.addEventListener("input", function(){
-    let pass = document.getElementById("password").value;
-    checkStrength(pass, passwordBar, passwordStrength, text);
+    password.addEventListener("input", function () {
+        let pass = document.getElementById("password").value;
+        checkStrength(pass, passwordBar, passwordStrength, text);
     });
     let password2 = document.getElementById('password_confirm');
     let passwordBar2 = document.getElementById('password-bar2');
     let passwordStrength2 = document.getElementById("password-strength2");
     let text2 = document.getElementById('password-strength-text2');
-    password2.addEventListener("input", function(){
-    let pass2 = document.getElementById("password_confirm").value;
-    checkStrength(pass2, passwordBar2, passwordStrength2, text2);
+    password2.addEventListener("input", function () {
+        let pass2 = document.getElementById("password_confirm").value;
+        checkStrength(pass2, passwordBar2, passwordStrength2, text2);
     });
 
 
-function checkStrength(password, passwordBar, passwordStrength, text) {
-    const strength = zxcvbnts.core.zxcvbn(password).score;
-    // console.log(strength)
-    // If value is less than 2
-    if (password.length > 0){
-        passwordBar.classList.remove('d-none')
-    } else {
-        passwordBar.classList.add('d-none')
+    function checkStrength(password, passwordBar, passwordStrength, text) {
+        const strength = zxcvbnts.core.zxcvbn(password).score;
+        // console.log(strength)
+        // If value is less than 2
+        if (password.length > 0) {
+            passwordBar.classList.remove('d-none')
+        } else {
+            passwordBar.classList.add('d-none')
+        }
+        if (strength <= 1) {
+            passwordStrength.classList.remove('bg-warning');
+            passwordStrength.classList.remove('bg-success');
+            passwordStrength.classList.add('bg-danger');
+            passwordStrength.style = 'width: 25%';
+            text.innerHTML = "Bad";
+        } else if (strength == 2) {
+            passwordStrength.classList.remove('bg-success');
+            passwordStrength.classList.remove('bg-danger');
+            passwordStrength.classList.add('bg-warning');
+            passwordStrength.style = 'width: 50%';
+            text.innerHTML = "Weak";
+        } else if (strength == 3) {
+            passwordStrength.classList.remove('bg-warning');
+            passwordStrength.classList.remove('bg-danger');
+            passwordStrength.classList.add('bg-success');
+            passwordStrength.style = 'width: 75%';
+            text.innerHTML = "Good";
+        } else if (strength == 4) {
+            passwordStrength.classList.remove('bg-warning');
+            passwordStrength.classList.remove('bg-danger');
+            passwordStrength.classList.add('bg-success');
+            passwordStrength.style = 'width: 100%';
+            text.innerHTML = "Strong";
+        }
     }
-    if (strength <= 1) {
-        passwordStrength.classList.remove('bg-warning');
-        passwordStrength.classList.remove('bg-success');
-        passwordStrength.classList.add('bg-danger');
-        passwordStrength.style = 'width: 25%';
-        text.innerHTML = "Bad";
-    } else if (strength == 2) {
-        passwordStrength.classList.remove('bg-success');
-        passwordStrength.classList.remove('bg-danger');
-        passwordStrength.classList.add('bg-warning');
-        passwordStrength.style = 'width: 50%';
-        text.innerHTML = "Weak";
-    } else if (strength == 3) {
-        passwordStrength.classList.remove('bg-warning');
-        passwordStrength.classList.remove('bg-danger');
-        passwordStrength.classList.add('bg-success');
-        passwordStrength.style = 'width: 75%';
-        text.innerHTML = "Good";
-    } else if (strength == 4) {
-        passwordStrength.classList.remove('bg-warning');
-        passwordStrength.classList.remove('bg-danger');
-        passwordStrength.classList.add('bg-success');
-        passwordStrength.style = 'width: 100%';
-        text.innerHTML = "Strong";
-    }
-}
 </script>
 
 {% endblock %}

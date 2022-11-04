@@ -1,166 +1,90 @@
-<!DOCTYPE html>
-<html>
-  <head>
-	  <style>
-		  #navbar{
-    background:#333;
-    color:#fff;
-    overflow:auto;
-}
+{% extends "home_base.html" %}
+{% block css %}
+<link href="{{ url_for('static',filename='css/mfa.css') }}" rel="stylesheet">
 
-#navbar a{
-    color:#fff
-}
+{% endblock %}
 
-#navbar h1{
-    float:left;
-    padding-top:20px;
-}
+{% block content %}
+<div class="container height-100 d-flex justify-content-center align-items-center">
+    <div class="position-relative">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
 
-#navbar ul{
-    list-style:none;
-    float:right;
-}
+                    {% endfor %}
+                {% endif %}
+    {% endwith %}
 
-#navbar ul li {
- float:left;
-}
+        <div class="card p-2 text-center"><h6>Please enter the one time password <br> to verify your account</h6>
+<!--            <div><span>A code has been sent to</span> <small></small></div>-->
+            <div class="inputs d-flex flex-row justify-content-center mt-2" id="otp"><input
+                    class="m-2 text-center form-control rounded" id="first" maxlength="1" type="text"/> <input
+                    class="m-2 text-center form-control rounded" id="second" maxlength="1" type="text"/> <input
+                    class="m-2 text-center form-control rounded" id="third" maxlength="1" type="text"/> <input
+                    class="m-2 text-center form-control rounded" id="fourth" maxlength="1" type="text"/> <input
+                    class="m-2 text-center form-control rounded" id="fifth" maxlength="1" type="text"/> <input
+                    class="m-2 text-center form-control rounded" id="sixth" maxlength="1" type="text"/></div>
+            {% for error in form.mfa.errors %}
+                 <span style="color: red;">{{ error }}</span>
+                 {% endfor %}<div class="mt-4">
+             <form action="" method="post">
+                 {{ form.csrf_token }}
+                 {{form.mfa}}
 
-#navbar ul li a{
-    display:block;
-    padding:20px;
-    text-align: center;
-}
-
-#navbar ul li a:hover,
- #navbar ul li a.current{
-    background:#444;
-    color:#f7c08a;
-}
-
-body{
-          font-family: 'Open Sans', sans-serif;
-          background:#3498db;
-          margin: 0 auto 0 auto;
-          width:100%;
-          text-align:center;
-          margin: 20px 0px 20px 0px;
-        }
-        p{
-          font-size:12px;
-          text-decoration: none;
-          color:#ffffff;
-        }
-        h1{
-          font-size:1.5em;
-          color:#525252;
-        }
-        .box{
-          background:white;
-          width:310px;
-          border-radius:6px;
-          margin: 0 auto 0 auto;
-          padding:0px 0px 70px 0px;
-          border: #2980b9 4px solid;
-        }
-        .username{
-          background:#ecf0f1;
-          border: #ccc 1px solid;
-          border-bottom: #ccc 2px solid;
-          padding: 8px;
-          width:250px;
-          color:#AAAAAA;
-          margin-top:10px;
-          font-size:1em;
-          border-radius:4px;
-        }
-        .button{
-          background:#2ecc71;
-          width:125px;
-          padding-top:5px;
-          padding-bottom:5px;
-          color:white;
-          border-radius:4px;
-          border: #27ae60 1px solid;
-          margin-top:20px;
-          margin-bottom:20px;
-          float:left;
-          margin-left:88px;
-          font-weight:800;
-          font-size:0.8em;
-        }
-        .button:hover{
-          background:#2CC06B;
-        }
-        .fpwd{
-            color:#f1c40f;
-            text-decoration: underline;
-        }
-       #absoluteCenteredDiv{
-            position: absolute;
-            top:0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            margin: auto;
-            width:400px;
-            height: 300px;
-            text-align: center;
-       }
-	  </style>
-    <title></title>
-    <link
-      rel="stylesheet"
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-    />
-      <link rel="stylesheet" type="text/css" href="css/style.css"/>
-
-    <!-- jQuery library -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-
-    <!-- Popper JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
-
-    <!-- Latest compiled JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-
-  </head> 
-  <body>
-  <header>
-        <nav id="navbar">
-        <div class="container">
-                <h1 class="logo">The Cozy Inn Hotel</h1>
-                <ul>
-                    <li><a href="{{url_for('home')}}">Home</a></li>
-                    <li><a href="{{url_for('register')}}">Register</a></li>
-                    <li><a href="{{url_for('login')}}">Login</a></li>
-                    <li><a href="{{url_for('home')}}">Contact Us</a></li>
-                </ul>
-              </div>
-            </nav>
-    </header>
-   <div id="absoluteCenteredDiv">
-        <form method="POST" action="">
-          <!-- {{ form.csrf_token }} generates a random hidden field used to protect against CSRF attacks-->
-          {{ form.csrf_token }}
-            <div class="box">
-                <h1>Please input OTP</h1>
-                
-                {{form.mfa}}
-
-                <button class="button" >Submit</button>
+                 <div></div>
+                <button class="btn btn-danger px-4 validate" id="otpSubmit">Validate</button>
+             </form>
             </div>
-        </form>
-
-      <center>
-  {% with messages = get_flashed_messages() %}
-           {% if messages %}
-              {% for message in messages %}
-                 {{ message }}
-              {% endfor %}
-           {% endif %}
-        {% endwith %}
-  </center>
+        </div>
+        <div class="card-2">
+            <div class="content d-flex justify-content-center align-items-center"><span>Didn't get the code</span> <a
+                    class="underline-text ms-3" href="#">Resend</a></div>
+        </div>
     </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function (event) {
+
+        function OTPInput() {
+            const inputs = document.querySelectorAll('#otp > *[id]');
+            for (let i = 0; i < inputs.length; i++) {
+                inputs[i].addEventListener('keydown', function (event) {
+                    if (event.key === "Backspace") {
+                        inputs[i].value = '';
+                        if (i !== 0) inputs[i - 1].focus();
+                    } else {
+                        if (i === inputs.length - 1 && inputs[i].value !== '') {
+                            return true;
+                        } else if (event.keyCode > 47 && event.keyCode < 58) {
+                            inputs[i].value = event.key;
+                            if (i !== inputs.length - 1) inputs[i + 1].focus();
+                            event.preventDefault();
+                        } else if (event.keyCode > 64 && event.keyCode < 91) {
+                            inputs[i].value = String.fromCharCode(event.keyCode);
+                            if (i !== inputs.length - 1) inputs[i + 1].focus();
+                            event.preventDefault();
+                        }
+                    }
+                });
+            }
+        }
+
+        OTPInput();
 
 
+    });
+    document.getElementById('otpSubmit').addEventListener("click", function() {
+  const inputs = document.querySelectorAll('#otp > *[id]');
+  let compiledOtp = '';
+  for (let i = 0; i < inputs.length; i++) {
+    compiledOtp += inputs[i].value;
+  }
+  document.getElementById('mfa').value = compiledOtp;
+  return true;
+});
+
+</script>
+{% endblock %}

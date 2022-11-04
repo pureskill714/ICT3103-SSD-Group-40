@@ -74,7 +74,7 @@
 <header>
     <nav class="navbar navbar-expand-lg" id="navbar">
         <div class="container">
-            <a class="navbar-brand" href="{{url_for('customerdashboard')}}">The Cozy Inn Hotel</a>
+            <a class="navbar-brand" href="{{url_for('home')}}">The Cozy Inn Hotel</a>
             <button aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"
                     class="navbar-toggler" data-bs-target="#navbarSupportedContent"
                     data-bs-toggle="collapse" type="button">
@@ -82,36 +82,10 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    {% if session['username'] %}
-                    <li class="nav-item"><a href="{{url_for('customerdashboard')}}">Home</a></li>
-                    <!--                    <li class="nav-item"><a class="nav-link" href="#">Link</a></li>-->
-                    <li class="nav-item dropdown">
-                        <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#"
-                           role="button">
-                            Booking
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{url_for('booking')}}">Book Room</a></li>
-                            <li><a class="dropdown-item" href="{{url_for('bookingtable')}}">View My Reservation</a></li>
-                            <li><a class="dropdown-item" href="{{url_for('cancelBooking')}}">Cancel Booking</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#"
-                           role="button">
-                            Log in as: {{session['username']}}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{url_for('viewProfile')}}">View Profile</a></li>
-                            <li><a class="dropdown-item" href="{{url_for('logout')}}">Logout</a></li>
-                        </ul>
-                    </li>
-                    {% else %}
                     <li class="nav-item"><a href="{{url_for('home')}}">Home</a></li>
                     <li class="nav-item"><a href="{{url_for('register')}}">Register</a></li>
                     <li class="nav-item"><a href="{{url_for('login')}}">Login</a></li>
                     <li class="nav-item"><a href="{{url_for('home')}}">Contact Us</a></li>
-                    {% endif %}
                 </ul>
             </div>
         </div>

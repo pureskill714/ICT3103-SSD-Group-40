@@ -20,7 +20,7 @@ import pymssql
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, logout_user
-from flask_wtf import FlaskForm, RecaptchaField
+from flask_wtf import FlaskForm, RecaptchaField, Recaptcha
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -29,7 +29,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from itsdangerous import URLSafeTimedSerializer
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, \
-    DateField
+    DateField, HiddenField
 from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired, EqualTo
 
 from util import cleanhtml, password_policy_check, make_safe_url
@@ -268,14 +268,14 @@ class LoginForm(FlaskForm):
                                          Length(min=8, max=64)], render_kw={"placeholder": "Password"})
 
     # For users to enter recaptcha field
-    recaptcha = RecaptchaField()
+    recaptcha = RecaptchaField(validators=[Recaptcha(message="Please complete captcha")])
 
     submit = SubmitField("Login")
 
 
 class MfaForm(FlaskForm):
     # For users to enter otp
-    mfa = IntegerField(validators=[InputRequired()])
+    mfa = HiddenField(validators=[InputRequired()])
 
 
 ###### Manager's CRUD staff's data ######
@@ -349,7 +349,7 @@ class BookingForm(FlaskForm):
     today = date.today()
     start_date = DateField('Start Date', format='%Y-%m-%d', default=today, validators=(validators.DataRequired(),))
     end_date = DateField('End date', validators=[DataRequired()])
-    submit = SubmitField('Book')
+    submit = SubmitField('Book Now')
 
     def validate_start_date(self, date):
         if self.start_date.data < datetime.datetime.now().date():
@@ -463,7 +463,7 @@ def login():
             passResult = bcrypt.check_password_hash(passwordHash[0], passwordInput)
         except:
             # Would likely occur if there was user had keyed in an invalid username
-            flash("Username or Password incorrect. Please try again")
+            # flash("Username or Password incorrect. Please try again")
             passResult = 0
 
         cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
@@ -497,7 +497,7 @@ def login():
             # return render_template('mfa.html', username=username, UUID=UUID, otp=generated)
 
         else:
-            flash("Username or Password incorrect. Please try again")
+            flash("Username or Password incorrect. Please try again", 'danger')
 
     return render_template('login.html', form=form)
 
@@ -536,7 +536,7 @@ def mfa():
 
         else:
             # currently unable to flash this for some reason, it flashes on login screen instead :/
-            flash("MFA incorrect. Please try again")
+            flash("MFA incorrect. Please try again", "danger")
 
     return render_template('mfa.html', form=form)
 
@@ -602,23 +602,28 @@ def forgetPassword():
 
         if (result[0] == 1):
             # Email of the user found
-            from gapi import create_message, send_message, service
+            # from gapi import create_message, send_message, service
 
             subject = "Password reset requested"
 
             token = ts.dumps(email, salt='recover-key')
+            conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+            cursor = conn.cursor()
+            cursor.execute('EXEC update_token_reset %s, %s', (email, token))
+            conn.commit()
+            conn.close()
 
             recover_url = url_for(
                 'reset_with_token',
                 token=token,
                 _external=True)
-
+            print(recover_url)
             html = render_template(
                 'email/recover.html',
                 recover_url=recover_url)
 
-            message = create_message('noreply.cozyinn@gmail.com', email, subject, html)
-            send_message(service=service, user_id='me', message=message)
+            # message = create_message('noreply.cozyinn@gmail.com', email, subject, html)
+            # send_message(service=service, user_id='me', message=message)
 
         elif (result[0] == 2):
             # email of the user not found, create log with IP here
@@ -632,8 +637,19 @@ def forgetPassword():
 def reset_with_token(token):
     try:
         email = ts.loads(token, salt="recover-key", max_age=360)
-        # print(email)
-    except:
+        print(email)
+        # check database for token
+        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
+        cursor = conn.cursor()
+        cursor.execute('EXEC retrieve_token_reset @Email = %s', email)
+        token_check = cursor.fetchone()
+        conn.commit()
+        conn.close()
+        if token_check[0] != token:
+            raise Exception("no match")
+
+    except Exception as e:
+        # print(e)
         form = forgotPasswordEmailForm()
         flash('The confirmation link is invalid or has expired.', 'danger')
         return render_template('forgetpassword.html', form=form)
@@ -646,9 +662,11 @@ def reset_with_token(token):
         cursor = conn.cursor()
         cursor.execute('EXEC update_password %s, %s', (email, hashed_password))
         conn.commit()
+        cursor.execute('EXEC update_token_reset %s, %s', (email, ""))
+        conn.commit()
         conn.close()
 
-        flash("Set new password successfully")
+        flash("Set new password successfully", 'success')
         return redirect(url_for('login'))
 
     return render_template('resetPasswordToken.html', form=form, token=token)
