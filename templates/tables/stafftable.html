@@ -1,103 +1,35 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>table</title>
-    <style>
+{% extends "base_manager.html" %}
+{% block css %}
+<link href="{{ url_for('static',filename='css/tablestyle.css') }}" rel="stylesheet">
 
-        table{
-            border-collapse: collapse;
-            width: 100%;
-        }
-    th,td{
-        border: 2px solid green;
-        padding: 15px;
-    }
+{% endblock %}
 
-     #navbar{
-    background:#333;
-    color:#fff;
-    overflow:auto;
-}
+{% block content %}
+    <div class="container">
+        <br>
+      <h2>Staff Table</h2>
 
-#navbar a{
-    color:#fff
-}
+      <div class="table-responsive custom-table-responsive">
 
-#navbar h1{
-    float:left;
-    padding-top:20px;
-}
-
-#navbar ul{
-    list-style:none;
-    float:right;
-}
-
-#navbar ul li {
- float:left;
-}
-
-#navbar ul li a{
-    display:block;
-    padding:20px;
-    text-align: center;
-}
-
-#navbar ul li a:hover,
- #navbar ul li a.current{
-    background:#444;
-    color:#f7c08a;
-}
-    </style>
-    <title></title>
-    <link
-      rel="stylesheet"
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-    />
-
-    <!-- jQuery library -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-
-    <!-- Popper JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
-
-    <!-- Latest compiled JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-  </head>
-<header>
-        <nav id="navbar">
-        <div class="container">
-                <h1 class="logo">Manager Page</a></h1>
-                <ul>
-                    <li><a href="{{url_for('managerdashboard')}}">Main Dashboard</a></li>
-                    <li><a href="{{url_for('staffregister')}}">Create Staff Account</a></li>
-                    <li><a href="{{url_for('login')}}">Update Staff</a></li>
-                    <li><a href="{{url_for('login')}}">Delete Staff</a></li>
-                    <li><a href="{{url_for('stafftable')}}">View Staffs</a></li>
-                </ul>
-              </div>
-            </nav>
-    </header>
-<body>
-<center>
-<h1>Staff Table</h1>
-</center>
-  <table>
-    <tr>
-        <th>Username</th>
-        <th>UUID</th>
-        <th>Email</th>
-        <th>Last Logon Time</th>
-        <th>First Name</th>
-        <th>Last Name</th>
-        <th>Address</th>
-        <th>DOB</th>
-        <th>Country</th>
-        <th>City</th>
-        <th>Contact</th>
-    </tr>
-    <tr>
-        {% for user in users %}
+        <table class="table custom-table">
+          <thead>
+            <tr>
+        <th scope="col">Username</th>
+        <th scope="col">UUID</th>
+        <th scope="col">Email</th>
+        <th scope="col">Last Logon Time</th>
+        <th scope="col">First Name</th>
+        <th scope="col">Last Name</th>
+        <th scope="col">Address</th>
+        <th scope="col">DOB</th>
+        <th scope="col">Country</th>
+        <th scope="col">City</th>
+        <th scope="col">Contact</th>
+            </tr>
+          </thead>
+          <tbody>
+                {% for user in users %}
+    <tr scope="row">
         <td>{{ user[0] }}</td>
         <td>{{ user[1] }}</td>
         <td>{{ user[2] }}</td>
@@ -110,8 +42,14 @@
         <td>{{ user[9] }}</td>
         <td>{{ user[10]}}</td>
     </tr>
+                <tr class="spacer"><td colspan="100"></td></tr>
        {% endfor %}
 
-</table>
-</body>
-</html>
+
+          </tbody>
+        </table>
+      </div>
+
+
+    </div>
+{% endblock %}

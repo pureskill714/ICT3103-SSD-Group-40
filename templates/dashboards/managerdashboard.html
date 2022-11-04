@@ -1,45 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-.button {
-  border: none;
-  color: white;
-  padding: 15px 32px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 16px;
-  margin: 4px 2px;
-  cursor: pointer;
-}
+{% extends "base_manager.html" %}
 
-.button1 {background-color: #4CAF50;} /* Green */
-.button2 {background-color: #008CBA;} /* Blue */
-.button3 {background-color: #8B8000;} /* Yellow */
-.button4 {background-color: #8B0000;} /* Red */
+{% block content %}
 
-</style>
-</head>
-<body style="background-color:powderblue;">
-
+<br>
+<div class="container">
 <h1>Welcome to the Manager dashboard</h1>
 <p>Here you can perform activities to manage your hotel staffs</p>
 
-<a href="{{url_for('staffregister')}}">
-<button class="button button1">Register A New Staff</button>
-</a>
-
-<a href="{{url_for('stafftable')}}">
-<button class="button button2">View All Staff Details</button>
-</a>
-
-<a href="{{url_for('staffUpdateSearch')}}"></a>
-<button class="button button3">Update Staff Details</button>
-</a>
-
-<br><br>
-<a href= "{{url_for('logout')}}">Press here to logout</a><br>
-
-</body>
-</html>
+</div>
+{% endblock %}
