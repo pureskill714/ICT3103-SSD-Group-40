@@ -132,6 +132,12 @@
                 {% endfor %}
                 </div>
             </div>
+
+            <br>
+                <div class="d-flex justify-content-center">{{form.recaptcha}}</div>
+                {% for error in form.recaptcha.errors %}
+                <span class="text-center mt-3" style="color: red;">{{ error }}</span>
+                {% endfor %}
             <!-- Save changes button-->
             {{ update_form.submit(class="btn btn-primary") }}
         </form>

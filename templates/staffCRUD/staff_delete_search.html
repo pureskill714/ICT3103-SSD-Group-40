@@ -7,6 +7,11 @@
 <form action="/staffdeletesubmit" method="POST">
   <label>Employee Number:</label>
   <input name="emp_username">
+  <br>
+  <div class="d-flex justify-content-center">{{form.recaptcha}}</div>
+  {% for error in form.recaptcha.errors %}
+  <span class="text-center mt-3" style="color: red;">{{ error }}</span>
+  {% endfor %}
   <input type="submit" value="Submit">
 </form>
 

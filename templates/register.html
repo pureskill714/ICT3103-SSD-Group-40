@@ -128,8 +128,13 @@
                                 </div>
                                 {% for error in form.contact.errors %}
                                 <span style="color: red;">{{ error }}</span>
+                                    
                                 {% endfor %}
-
+                                <br>
+                                <div class="d-flex justify-content-center">{{form.recaptcha}}</div>
+                                    {% for error in form.recaptcha.errors %}
+                                    <span class="text-center mt-3" style="color: red;">{{ error }}</span>
+                                    {% endfor %}
                                 <div class="text-center mt-3">
                                     {{ form.submit(class="btn btn-lg btn-primary") }}
                                     <!--                                    <button-->
