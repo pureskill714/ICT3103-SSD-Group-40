@@ -188,7 +188,7 @@ def check_session(username, session_ID):
 def delete_session(username, session_ID):
     username = encode(username)
     session_ID = session_ID
-    conn = pymssql.connect(server="DESKTOP-7GS9BE8", user='sa', password='12345678', database="3203")
+    conn = pymssql.connect(server="localhost", user='sa', password='9WoH697&p2oM', database="3203")
     cursor = conn.cursor()
     cursor.execute('EXEC delete_session %s, %s', (username, session_ID))
     conn.commit()
@@ -552,7 +552,7 @@ def login():
                 # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
                 return redirect(url_for('mfa'))
             else:
-                conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+                conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
                 cursor = conn.cursor()
                 insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
                 data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
@@ -565,7 +565,7 @@ def login():
                 flash("Username or Password incorrect. Please try again")
         except:
             # Would likely occur if there was user had keyed in an invalid username
-            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+            conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
@@ -611,7 +611,7 @@ def mfa():
             browser = str(request.user_agent)
             time_date_aware = datetime.datetime.now(pytz.utc)
 
-            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+            conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (time_date_aware, "aunth_login_success", "Info", hostname, source_ip, destination_ip, browser, f"User {session['User_ID']} login successfully")
@@ -648,7 +648,7 @@ def customerdashboard():
 
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Customer'):
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
         data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
@@ -676,7 +676,7 @@ def staffdashboard():
 
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Staff'):
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
         data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
@@ -699,7 +699,7 @@ def managerdashboard():
 
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Manager'):
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
         data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
@@ -726,7 +726,7 @@ def logout():
 
     try:
         check_session(session['username'], session['Session_ID'])
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
         data = (time_date_aware, "aunth_logout_success", "Info", hostname, source_ip, destination_ip, browser,
@@ -766,7 +766,7 @@ def forgetPassword():
         flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
 
         if (result[0] == 1):
-            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+            conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (time_date_aware, "forget_password_email_successful_sent", "Info", hostname, source_ip, destination_ip, browser,
@@ -802,7 +802,7 @@ def forgetPassword():
 
         elif (result[0] == 2):
             # email of the user not found, create log with IP here
-            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+            conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (
@@ -821,9 +821,6 @@ def forgetPassword():
 def reset_with_token(token):
     try:
         email = ts.loads(token, salt=salt, max_age=360)
-    except:
-        email = ts.loads(token, salt="recover-key", max_age=360)
-        print(email)
         # check database for token
         conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
         cursor = conn.cursor()
@@ -831,8 +828,10 @@ def reset_with_token(token):
         token_check = cursor.fetchone()
         conn.commit()
         conn.close()
+        print(email)
         if token_check[0] != token:
             raise Exception("no match")
+    except:
         # print(e)
         form = forgotPasswordEmailForm()
         flash('The confirmation link is invalid or has expired.', 'danger')
@@ -909,7 +908,7 @@ def register():
 
         if res == 2:
             # Stored procedure was ran successfully and user successfully registered
-            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+            conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (
@@ -920,7 +919,7 @@ def register():
             conn.close()
             return redirect(url_for('registersuccess'))  # redirect to login page after register
         elif res == 1:
-            conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+            conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (
@@ -992,7 +991,7 @@ def customertable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
@@ -1006,7 +1005,7 @@ def stafftable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Manager'):
         return render_template('403.html'), 403
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
@@ -1022,7 +1021,7 @@ def pendingbookingtable():
         return render_template('403.html'), 403
 
     approve = ApproveBooking()
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     get_bookings = "SELECT * FROM get_pending_bookings"
     cursor.execute(get_bookings)
@@ -1039,7 +1038,7 @@ def cancelBooking():
         return render_template('403.html'), 403
 
     delete = deleteBooking()
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     User_UUID = res[0]
     cursor.execute("EXEC get_my_bookings %s", User_UUID)
@@ -1075,14 +1074,14 @@ def deleteBookingConfirm(id):
 def bookingtable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] == 'Customer'):
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
         cursor = conn.cursor()
         User_UUID = res[0]
         cursor.execute("EXEC get_my_bookings %s", User_UUID)
         bookings = cursor.fetchall()
         conn.close()
     elif (res[1] == 'Staff'):
-        conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM get_bookings")
         bookings = cursor.fetchall()
@@ -1100,7 +1099,7 @@ def pendingBookingApprove(id):
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC approve_bookings %s", id)
     conn.commit()
@@ -1113,7 +1112,7 @@ def approvedbookingtable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_approved_bookings")
     bookings = cursor.fetchall()
@@ -1168,7 +1167,7 @@ def staffUpdateSubmit():
     city = encode(update_form.city.data)
     contact = update_form.contact.data
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     if update_form.validate_on_submit():
         cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d",
@@ -1201,7 +1200,7 @@ def viewProfile():
     else:
         return redirect(url_for('timeout'))
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -1237,7 +1236,7 @@ def editProfile():
         city = encode(editProfileForm.city.data)
         contact = editProfileForm.contact.data
 
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203")
+        conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
         cursor = conn.cursor()
 
         if bcrypt.check_password_hash(passwordHash[0], passwordInput):
@@ -1269,7 +1268,7 @@ def changepassword():
     else:
         return redirect(url_for('timeout'))
 
-    conn = pymssql.connect("DESKTOP-FDNFHQ1", 'sa', 'raheem600', "3103")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -1328,7 +1327,7 @@ def timeout():
     browser = str(request.user_agent)
     time_date_aware = datetime.datetime.now(pytz.utc)
 
-    conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', '12345678', "3203_logging")
+    conn = pymssql.connect("localhost", 'sa', '9WoH697&p2oM', "3203_logging")
     cursor = conn.cursor()
     insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
     data = (time_date_aware, "session_expired", "Warn", hostname, source_ip, destination_ip, browser,
@@ -1343,70 +1342,70 @@ def timeout():
     return render_template('timeout.html')
 
 
-# 400 - To handle Bad request
-@app.route('/400')
-def error400():
-    abort(400)
-
-
-# 401 - To handle error of Unauthorized request
-@app.route('/401')
-def error401():
-    abort(401)
-
-
-# 404 - To handle error in matching the Request URL
-@app.route('/404')
-def error404():
-    abort(404)
-
-
-# 500 - To handle error in Internal Server Error
-@app.route('/500')
-def error500():
-    abort(500)
-
-
-# To direct to 400 page
-@app.errorhandler(400)
-def unauthorized_page(error):
-    return render_template('400.html'), 400
-
-
-# To direct to 401 page
-@app.errorhandler(401)
-def unauthorized_page(error):
-    return render_template('401.html'), 401
-
-
-# To direct to 404 page
-@app.errorhandler(404)
-def page_not_found(error):
-    return render_template('404.html'), 404
-
-
-# To direct to 500 page
-@app.errorhandler(500)
-def internal_error(error):
-    return render_template('500.html'), 500
-
-
-# To direct to CSRF validation error
-@app.errorhandler(CSRFError)
-def handle_csrf_error(error):
-    return render_template('403.html'), 403
-
-
-# To handle index error
-@app.errorhandler(IndexError)
-def index_error(error):
-    return render_template('500.html'), 500
-
-
-# To handle exception error
-@app.errorhandler(Exception)
-def operational_error(error):
-    return render_template('403.html'), 403
+# # 400 - To handle Bad request
+# @app.route('/400')
+# def error400():
+#     abort(400)
+#
+#
+# # 401 - To handle error of Unauthorized request
+# @app.route('/401')
+# def error401():
+#     abort(401)
+#
+#
+# # 404 - To handle error in matching the Request URL
+# @app.route('/404')
+# def error404():
+#     abort(404)
+#
+#
+# # 500 - To handle error in Internal Server Error
+# @app.route('/500')
+# def error500():
+#     abort(500)
+#
+#
+# # To direct to 400 page
+# @app.errorhandler(400)
+# def unauthorized_page(error):
+#     return render_template('400.html'), 400
+#
+#
+# # To direct to 401 page
+# @app.errorhandler(401)
+# def unauthorized_page(error):
+#     return render_template('401.html'), 401
+#
+#
+# # To direct to 404 page
+# @app.errorhandler(404)
+# def page_not_found(error):
+#     return render_template('404.html'), 404
+#
+#
+# # To direct to 500 page
+# @app.errorhandler(500)
+# def internal_error(error):
+#     return render_template('500.html'), 500
+#
+#
+# # To direct to CSRF validation error
+# @app.errorhandler(CSRFError)
+# def handle_csrf_error(error):
+#     return render_template('403.html'), 403
+#
+#
+# # To handle index error
+# @app.errorhandler(IndexError)
+# def index_error(error):
+#     return render_template('500.html'), 500
+#
+#
+# # To handle exception error
+# @app.errorhandler(Exception)
+# def operational_error(error):
+#     return render_template('403.html'), 403
 
 
 @app.route("/booking", methods=['GET', 'POST'])
