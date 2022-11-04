@@ -1,141 +1,89 @@
-<!DOCTYPE html>
-<html>
-  <head>
-	  <style>
-		  #navbar{
-    background:#333;
-    color:#fff;
-    overflow:auto;
-}
+{% extends "base_manager.html" %}
 
-#navbar a{
-    color:#fff
-}
+{% block content %}
 
-#navbar h1{
-    float:left;
-    padding-top:20px;
-}
+<div class="container h-100">
+    <div class="row h-100">
+        <div class="col-sm-10 col-md-8 col-lg-6 mx-auto d-table h-100">
+            <div class="d-table-cell align-middle">
 
-#navbar ul{
-    list-style:none;
-    float:right;
-}
+                <div class="text-center mt-4">
+                    <h2>Register a new staff account</h2>
+                </div>
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-success" role="alert">
+                    {{ message }}
+                </div>
 
-#navbar ul li {
- float:left;
-}
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="m-sm-4">
+                            <form action="" method="post">
+                                {{form.hidden_tag() }}
+                                <div class="form-group">
+                                    {{ form.firstname.label }}
+                                    {{ form.firstname(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.firstname.errors else "") + "", placeholder="Enter first name") }}
+                                </div>
+                                {% for error in form.firstname.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
+                                <div class="form-group">
+                                    {{ form.lastname.label }}
+                                    {{ form.lastname(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.lastname.errors else "") + "", placeholder="Enter last name") }}
+                                </div>
+                                {% for error in form.lastname.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
+                                <div class="form-group">
+                                    {{ form.email.label }}
+                                    {{ form.email(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.email.errors else "") + "", placeholder="Enter email") }}
+                                </div>
+                                {% for error in form.email.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
+                                <div class="form-group">
+                                    {{ form.username.label }}
+                                    {{ form.username(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.username.errors else "") + "", placeholder="Enter username") }}
+                                </div>
+                                {% for error in form.username.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
 
-#navbar ul li a{
-    display:block;
-    padding:20px;
-    text-align: center;
-}
 
-#navbar ul li a:hover,
- #navbar ul li a.current{
-    background:#444;
-    color:#f7c08a;
-}
-	  </style>
-    <title></title>
-    <link
-      rel="stylesheet"
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-    />
+                                <div class="form-group">
+                                    {{ form.contact.label }}
+                                    {{ form.contact(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.contact.errors else "") + "", placeholder="Enter mobile number") }}
+                                </div>
+                                {% for error in form.contact.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
 
-    <!-- jQuery library -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-
-    <!-- Popper JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
-
-    <!-- Latest compiled JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-  </head>
-  <body style="background-color:powderblue;">
-  <header>
-        <nav id="navbar">
-        <div class="container">
-                <h1 class="logo">Manager Page</a></h1>
-                <ul>
-                    <li><a href="{{url_for('managerdashboard')}}">Main Dashboard</a></li>
-                    <li><a href="{{url_for('staffregister')}}">Create Staff Account</a></li>
-                    <li><a href="{{url_for('staffUpdateSearch')}}">Update Staff</a></li>
-                    <li><a href="{{url_for('login')}}">Delete Staff</a></li>
-                    <li><a href="{{url_for('stafftable')}}">View Staffs</a></li>
-                </ul>
-              </div>
-            </nav>
-    </header>
-    <h1
-      class="text-green text-center font-weight-bold"
-      style="font-size: 40px;"
-    >
-      Register a new staff account
-    </h1>
-  <center>
-  {% with messages = get_flashed_messages() %}
-           {% if messages %}
-              {% for message in messages %}
-                 {{ message }}
-              {% endfor %}
-           {% endif %}
-        {% endwith %}
-  </center>
-
-    <div class="container">
-      <br />
-		<!-- Inputting first name -->
-      <div class="col-lg-5 m-auto d-block">
-        <form method="POST" action="">
-            {{form.hidden_tag() }}
-          <div class="form-group">
-            <label for="name" class="font-weight-regular"> First Name </label><br>
-            {{form.firstname}}
-            <span id="Name" class="text-danger font-weight-regular"> </span>
-          </div>
-			<!-- Inputting last name -->
-			 <div class="form-group">
-            <label for="name" class="font-weight-regular"> Last Name </label><br>
-            {{form.lastname}}
-            <span id="Name" class="text-danger font-weight-regular"> </span>
-          </div>
-
-			<!-- Inputting email -->
-          <div class="form-group">
-            <label class="font-weight-regular"> Email </label><br>
-            {{form.email}}
-            <span id="emailids" class="text-danger font-weight-regular"> </span>
-          </div>
-
-			<!-- Inputting username -->
-          <div class="form-group">
-            <label for="user" class="font-weight-regular"> Username </label><br>
-            {{form.username}}
-            <span id="username" class="text-danger font-weight-regular"> </span>
-          </div>
-
-		   <!-- Inputting contact number -->
-          <div class="form-group">
-            <label class="font-weight-regular"> Mobile Number </label><br>
-            {{form.contact}}
-            <span id="mobileno" class="text-danger font-weight-regular"> </span>
-          </div>
-            
-          <!-- Submit button -->
-         {{form.submit}}
-          <input
-            type="reset"
-            name="reset"
-            value="Reset"
-            class="btn btn-secondary"
-            autocomplete="off"
-          />
-        </form>
-
-        <br /><br />
-      </div>
+                                <div class="text-center mt-3">
+                                    {{ form.submit(class="btn btn-lg btn-primary") }}
+                                    <!--                                    <button-->
+                                    <!--                                        type="reset"-->
+                                    <!--                                        name="reset"-->
+                                    <!--                                        value="Reset"-->
+                                    <!--                                        class="btn btn-light"-->
+                                    <!--                                        autocomplete="off"-->
+                                    <!--                                    >Clear</button>-->
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </body>
-</html>
+</div>
+{% endblock %}
