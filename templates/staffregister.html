@@ -68,6 +68,15 @@
                                 <span style="color: red;">{{ error }}</span>
                                 {% endfor %}
 
+                                 <div class="form-group">
+                                    {{ form.password.label }}
+                                    {{ form.password(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.password.errors else "") + "", placeholder="Enter password resubmission") }}
+                                </div>
+                                {% for error in form.password.errors %}
+                                <span style="color: red;">{{ error }}</span>
+                                {% endfor %}
+
                                 <div class="text-center mt-3">
                                     {{ form.submit(class="btn btn-lg btn-primary") }}
                                     <!--                                    <button-->
