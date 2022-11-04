@@ -68,7 +68,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Strict',
 )
-
+app.config["TESTING"] = True
 
 # function to generate OTP
 def generateOTP():
