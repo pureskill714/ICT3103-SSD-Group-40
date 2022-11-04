@@ -68,8 +68,8 @@ app = Flask(__name__, static_url_path='/static')  # Create an instance of the fl
 app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
 recaptcha_public_key = os.getenv('recaptcha_public_key')
-app.config['RECAPTCHA_PUBLIC_KEY'] = f'{recaptcha_public_key}'
 recaptcha_private_key=os.getenv('recaptcha_private_key')
+app.config['RECAPTCHA_PUBLIC_KEY'] = f'{recaptcha_public_key}'
 app.config['RECAPTCHA_PRIVATE_KEY'] = f'{recaptcha_private_key}'
 # against attacks such as Cross site request forgery (CSRF)
 bcrypt = Bcrypt(app)
@@ -563,7 +563,8 @@ def login():
                 # Add code her with Flask-Authorize to determine the role of the user and redirect accordingly
                 return redirect(url_for('mfa'))
             else:
-                conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
+                db_password = os.getenv("db_password")
+                conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', f"{db_password}", "3203")
                 cursor = conn.cursor()
                 insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
                 data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
@@ -576,7 +577,8 @@ def login():
                 return redirect(url_for('login'))
         except:
             # Would likely occur if there was user had keyed in an invalid username
-            conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', '12345678', "3203")
+            db_password = os.getenv("db_password")
+            conn = pymssql.connect("LAPTOP-5NI9K14N", 'sa', f"{db_password}", "3203")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
