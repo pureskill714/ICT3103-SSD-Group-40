@@ -14,22 +14,23 @@
                 </div>
                 {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{ message }}
-                    </div>
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" role="alert">
+                    {{ message }}
+                </div>
 
-                    {% endfor %}
+                {% endfor %}
                 {% endif %}
                 {% endwith %}
                 <div class="card">
                     <div class="card-body">
                         <div class="m-sm-4">
                             <form action="{{ url_for('staffUpdateValue') }}" method="post">
-                                  {{ form.csrf_token() }}
+                                {{ form.csrf_token() }}
                                 <div class="form-group">
                                     {{ form.username.label }}
-                                    {{ form.username(class_="form-control form-control-lg" + (" is-invalid" if form.username.errors else "") + "", placeholder="Enter your username") }}
+                                    {{ form.username(class_="form-control form-control-lg" + (" is-invalid" if
+                                    form.username.errors else "") + "", placeholder="Enter your username") }}
                                 </div>
                                 {% for error in form.username.errors %}
                                 <span style="color: red;">{{ error }}</span>
