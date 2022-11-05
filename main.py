@@ -554,7 +554,7 @@ def login():
             conn.close()
             if user_email is not None:  # Login was successful
                 session['username'] = username
-
+                session.permanent = True
                 #generate secret for generating the otp
                 otpsecret = base64.b32encode(os.urandom(16)).decode('utf-8')
                 session['secret'] = otpsecret
