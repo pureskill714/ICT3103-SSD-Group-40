@@ -65,7 +65,7 @@ seckey = data1 + data3  # Random 16bytes+base64
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
 app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)  # To give session timeout if user idle
 recaptcha_public_key = os.getenv('recaptcha_public_key')
 recaptcha_private_key=os.getenv('recaptcha_private_key')
 app.config['RECAPTCHA_PUBLIC_KEY'] = f'{recaptcha_public_key}'
@@ -189,6 +189,7 @@ def check_session(username, session_ID):
         logout_user()  # log the user out
         session.clear()  # Ensure session is cleared
         session.pop('username', None)  # Remove session after user has logout
+        delete_session(session['username'], session['Session_ID']) #delete session from database
     return None
 
 
@@ -536,6 +537,7 @@ def login():
         # Uses bcrypt to check the password hashes and calls the login_user stored procedure to check if login was successful and to update the database accordingly.
         try:
             passResult = bcrypt.check_password_hash(passwordHash[0], passwordInput)
+
             cursor.execute("EXEC login_user @username = %s, @login_success = %d, @IP_Address = %s",
                            (username, int(passResult), encode(get('https://api.ipify.org').text)))
 
