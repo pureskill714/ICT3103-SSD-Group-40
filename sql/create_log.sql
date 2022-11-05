@@ -13,9 +13,6 @@ CREATE PROCEDURE create_log(
 )
 AS
 BEGIN
-	IF GETDATE() != @datetime
-		SELECT 2
-	ELSE
 	BEGIN
 		INSERT INTO Logs(datetime, event, security_level, hostname, source_address, destination_address, browser, description)
 		VALUES (@datetime, @event, @security_level, @hostname, @source_address, @destination_address, @browser, @description)

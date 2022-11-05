@@ -1,0 +1,157 @@
+{% extends "base_manager.html" %}
+
+{% block content %}
+<br>
+ <!-- Account details card-->
+<div class="container h-100">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
+    <div class="card mb-4">
+    <div class="card-header">Staff Account Details</div>
+    <div class="card-body">
+        <form action="{{ url_for('staffDeleteSubmit') }}" method="post">
+            {{ update_form.csrf_token }}
+            <!-- Form Group (username)-->
+            <div class="mb-3">
+                {{ update_form.username.label(class_="small mb-1") }}
+                {{ update_form.username(class_="form-control" + (" is-invalid" if update_form.username.errors else "") + ""
+                , placeholder="Enter your username"
+                , value=username) }}
+
+            {% for error in update_form.username.errors %}
+            <span style="color: red;">{{ error }}</span>
+            {% endfor %}
+            </div>
+            <!-- Form Row-->
+            <div class="row gx-3 mb-3">
+                <!-- Form Group (first name)-->
+                <div class="col-md-6">
+                    {{ update_form.firstname.label(class_="small mb-1") }}
+                    {{ update_form.firstname(class_="form-control" + (" is-invalid" if
+                    update_form.firstname.errors else "") + "",
+                    placeholder="Enter your first name",
+                    value=user[0]) }}
+                    {% for error in update_form.firstname.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+                </div>
+                <!-- Form Group (last name)-->
+                <div class="col-md-6">
+                {{ update_form.lastname.label(class_="small mb-1") }}
+                {{ update_form.lastname(class_="form-control" + (" is-invalid" if
+                    update_form.lastname.errors else "") + "",
+                    placeholder="Enter your last name",
+                    value=user[1]) }}
+                {% for error in update_form.lastname.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+                </div>
+            </div>
+            <!-- Form Row        -->
+            <div class="row gx-3 mb-3">
+                <!-- Form Group (country)-->
+                <div class="col-md-6">
+                {{ update_form.country.label(class_="small mb-1") }}
+                {{ update_form.country(class_="form-control" + (" is-invalid" if
+                    update_form.country.errors else "") + "",
+                    placeholder="Enter your country",
+                    value= ("" if user[5] == None else user[5])) }}
+                    {% for error in update_form.country.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+
+                </div>
+                <!-- Form Group (city)-->
+                <div class="col-md-6">
+                {{ update_form.city.label(class_="small mb-1") }}
+                {{ update_form.city(class_="form-control" + (" is-invalid" if
+                    update_form.city.errors else "") + "",
+                    placeholder="Enter your city",
+                    value= ("" if user[6] == None else user[6])) }}
+                {% for error in update_form.city.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+
+                </div>
+            </div>
+            <!-- Form Group (email address)-->
+            <div class="mb-3">
+                {{ update_form.email.label(class_="small mb-1") }}
+                {{ update_form.email(class_="form-control" + (" is-invalid" if
+                update_form.email.errors else "") + "",
+                placeholder="Enter your email address",
+                value= ("" if user[2] == None else user[2])) }}
+                {% for error in update_form.email.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+
+            </div>
+          <div class="mb-3">
+                {{ update_form.address.label(class_="small mb-1") }}
+                {{ update_form.address(class_="form-control" + (" is-invalid" if
+              update_form.address.errors else "") + "",
+              placeholder="Enter your address",
+              value= ("" if user[5] == None else user[3])) }}
+                {% for error in update_form.address.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+
+            </div>
+
+            <!-- Form Row-->
+            <div class="row gx-3 mb-3">
+                <!-- Form Group (phone number)-->
+                <div class="col-md-6">
+                {{ update_form.contact.label(class_="small mb-1") }}
+                {{ update_form.contact(class_="form-control" + (" is-invalid" if
+                    update_form.contact.errors else "") + "",
+                    placeholder="Enter your phone number",
+                    value= ("" if user[7] == None else user[7])) }}
+                {% for error in update_form.contact.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+
+                </div>
+                <!-- Form Group (birthday)-->
+                <div class="col-md-6">
+                {{ update_form.dob.label(class_="small mb-1") }}
+                {{ update_form.dob(class_="form-control" + (" is-invalid" if
+                    update_form.dob.errors else "") + "",
+                    placeholder="Enter your date of birth",
+                    value= ("" if user[4] == None else user[4])) }}
+                {% for error in update_form.dob.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+                </div>
+            </div>
+
+            <div class="row gx-3">
+                <!-- Form Group (phone number)-->
+                <div class="col-mb-3">
+                {{ update_form.password.label(class_="small mb-1") }}
+                {{ update_form.password(class_="form-control" + (" is-invalid" if
+                    update_form.password.errors else "") + "",
+                    placeholder="Please reenter your password") }}
+                {% for error in update_form.contact.errors %}
+                <span style="color: red;">{{ error }}</span>
+                {% endfor %}
+                </div>
+            
+            </div>
+            <!-- Save changes button-->
+            <br>
+            {{ update_form.submit(class="btn btn-primary") }}
+        </form>
+    </div>
+</div>
+
+</div>
+{% endblock %}
