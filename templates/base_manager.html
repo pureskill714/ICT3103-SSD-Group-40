@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <style>
         body {
@@ -34,7 +35,9 @@
             margin: 0px;
         }
 
-        h1, h2, h3 {
+        h1,
+        h2,
+        h3 {
             padding-bottom: 0px !important
         }
 
@@ -55,70 +58,74 @@
     <meta content="CozyInn hotel" name="description">
     <meta content="hotel booking cozy inn cozyinn" name="keywords">
     <link crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"
-          integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" rel="stylesheet">
-    <script crossorigin="anonymous"
-            integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
-            src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script crossorigin="anonymous"
-            integrity="sha384-IDwe1+LCz02ROU9k972gdyvl+AESN10+x7tBKgc9I5HFtuNz0wWnPclzo6p9vxnk"
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.min.js"></script>
-    <script crossorigin="anonymous"
-            integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+        integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" rel="stylesheet">
+    <script crossorigin="anonymous" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
+        src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script crossorigin="anonymous" integrity="sha384-IDwe1+LCz02ROU9k972gdyvl+AESN10+x7tBKgc9I5HFtuNz0wWnPclzo6p9vxnk"
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.min.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ="
+        src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
     <link crossorigin="anonymous" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css"
-          integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" rel="stylesheet">
+        integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" rel="stylesheet">
     <link href="{{ url_for('static',filename='css/style.css') }}" rel="stylesheet">
     {% block css %}{% endblock %}
     <title>The Cozy Inn - Homepage</title>
 </head>
-<body>
-<header>
-    <nav class="navbar navbar-expand-lg" id="navbar">
-        <div class="container">
-            <a class="navbar-brand" href="{{url_for('managerdashboard')}}">The Cozy Inn Hotel Manager</a>
-            <button aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"
-                    class="navbar-toggler" data-bs-target="#navbarSupportedContent"
-                    data-bs-toggle="collapse" type="button">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    {% if session['username'] %}
-                    <li class="nav-item"><a href="{{url_for('managerdashboard')}}">Home</a></li>
-                    <!--                    <li class="nav-item"><a class="nav-link" href="#">Link</a></li>-->
-                    <li class="nav-item dropdown">
-                        <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#"
-                           role="button">
-                            Manage Staff
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{url_for('staffregister')}}">Register A New Staff</a></li>
-                            <li><a class="dropdown-item" href="{{url_for('stafftable')}}">View All Staff Details</a></li>
-                            <li><a class="dropdown-item" href="{{url_for('staffUpdateSearch')}}">Update Staff Details</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#"
-                           role="button">
-                            Log in as: {{session['username']}}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{url_for('viewProfile')}}">View Profile</a></li>
-                            <li><a class="dropdown-item" href="{{url_for('logout')}}">Logout</a></li>
-                        </ul>
-                    </li>
-                    {% else %}
-                    <li class="nav-item"><a href="{{url_for('home')}}">Home</a></li>
-                    <li class="nav-item"><a href="{{url_for('register')}}">Register</a></li>
-                    <li class="nav-item"><a href="{{url_for('login')}}">Login</a></li>
-                    <li class="nav-item"><a href="{{url_for('home')}}">Contact Us</a></li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-</header>
-{% block content %}{% endblock %}
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg" id="navbar">
+            <div class="container">
+                <a class="navbar-brand" href="{{url_for('managerdashboard')}}">The Cozy Inn Hotel Manager</a>
+                <button aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"
+                    class="navbar-toggler" data-bs-target="#navbarSupportedContent" data-bs-toggle="collapse"
+                    type="button">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        {% if session['username'] %}
+                        <li class="nav-item"><a href="{{url_for('managerdashboard')}}">Home</a></li>
+                        <!--                    <li class="nav-item"><a class="nav-link" href="#">Link</a></li>-->
+                        <li class="nav-item dropdown">
+                            <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#"
+                                role="button">
+                                Manage Staff
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{url_for('staffregister')}}">Register A New
+                                        Staff</a></li>
+                                <li><a class="dropdown-item" href="{{url_for('stafftable')}}">View All Staff Details</a>
+                                </li>
+                                <li><a class="dropdown-item" href="{{url_for('staffUpdateSearch')}}">Update Staff
+                                        Details</a></li>
+                                <li><a class="dropdown-item" href="{{url_for('staffDeleteSearch')}}">Delete Staff</a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a aria-expanded="false" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#"
+                                role="button">
+                                Log in as: {{session['username']}}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{url_for('viewProfile')}}">View Profile</a></li>
+                                <li><a class="dropdown-item" href="{{url_for('logout')}}">Logout</a></li>
+                            </ul>
+                        </li>
+                        {% else %}
+                        <li class="nav-item"><a href="{{url_for('home')}}">Home</a></li>
+                        <li class="nav-item"><a href="{{url_for('register')}}">Register</a></li>
+                        <li class="nav-item"><a href="{{url_for('login')}}">Login</a></li>
+                        <li class="nav-item"><a href="{{url_for('home')}}">Contact Us</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+    </header>
+    {% block content %}{% endblock %}
 </body>
 
 </html>
