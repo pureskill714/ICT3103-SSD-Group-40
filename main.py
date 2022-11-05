@@ -52,6 +52,7 @@ logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S
 import pytz
 import socket
 from requests import get
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from gapi import create_message, send_message, service
 
@@ -64,6 +65,9 @@ data3 = base64.b64encode(code)
 seckey = data1 + data3  # Random 16bytes+base64
 
 app = Flask(__name__, static_url_path='/static')  # Create an instance of the flask app and put in variable app
+app.wsgi_app = ProxyFix(  # tell flask is behind a proxy
+    app.wsgi_app, x_for=1, x_proto=1, x_port=1
+)
 app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
 recaptcha_public_key = os.getenv('recaptcha_public_key')
