@@ -90,7 +90,8 @@ app.config.update(
     SESSION_COOKIE_DOMAIN=False
 )
 
-
+db_password = os.getenv("db_password")
+print(db_password)
 def gmail_send_message(otp, emailadd):
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
