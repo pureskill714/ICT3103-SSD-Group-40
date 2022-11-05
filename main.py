@@ -3,6 +3,7 @@ from __future__ import print_function  # not sure if can remove this
 
 import base64
 import datetime
+import hashlib
 import math
 import os
 # for google API stuff (part 2)
@@ -29,7 +30,7 @@ from itsdangerous import URLSafeTimedSerializer
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, \
     DateField, HiddenField
 from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired, EqualTo
-
+import pwnedpasswords
 from util import cleanhtml, password_policy_check
 
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
@@ -223,6 +224,12 @@ class RegisterForm(FlaskForm):
     contact = IntegerField('Contact Number', validators=[InputRequired()])
 
     submit = SubmitField("Register")  # Register button once they are done
+
+    def validate_password(self, password):
+        hash_object = hashlib.sha1(self.password.data.encode('utf-8'))
+        pbHash = hash_object.hexdigest()
+        if pwnedpasswords.check(pbHash) > 1:
+            raise ValidationError("This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
 
 
 class EditProfileForm(FlaskForm):
