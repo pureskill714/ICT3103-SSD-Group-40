@@ -4,6 +4,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/core@2.0.0/dist/zxcvbn-ts.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/language-common@2.0.0/dist/zxcvbn-ts.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/language-en@2.0.0/dist/zxcvbn-ts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxcvbn-ts/matcher-pwned@2.0.0/dist/zxcvbn-ts.js"></script>
 
 <div class="container h-100">
     <div class="row h-100">
@@ -65,7 +66,8 @@
                                 {% endfor %}
                                 <div class="form-group">
                                     {{ form.password.label }}
-                                    {{ form.password(class_="form-control form-control-lg" + (" is-invalid" if
+                                    {{ form.password(data_toggle="popover",
+                                    class_="form-control form-control-lg " + (" is-invalid" if
                                     form.password.errors else "") + "", placeholder="Enter your password") }}
                                     <div class="row d-none" id="password-bar">
                                         <p><span></span></p>
@@ -96,27 +98,27 @@
                                     {{ form.password_confirm.label }}
                                     {{ form.password_confirm(class_="form-control form-control-lg" + (" is-invalid" if
                                     form.password_confirm.errors else "") + "", placeholder="Confirm your password") }}
-                                    <div class="row d-none" id="password-bar2">
-                                        <p><span></span></p>
-                                        <div class="col-6">
-                                            <div class="progress">
-                                                <div aria-valuemax="10"
-                                                     aria-valuemin="0"
-                                                     aria-valuenow="0"
-                                                     class="progress-bar"
-                                                     id="password-strength2"
-                                                     role="progressbar"
-                                                     style="width:0%">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 text-end">
-                                            <small class="form-text text-muted">
-                                                Password strength:
-                                            </small>
-                                            <p class="d-inline font-weight-bold" id="password-strength-text2"></p>
-                                        </div>
-                                    </div>
+<!--                                    <div class="row d-none" id="password-bar2">-->
+<!--                                        <p><span></span></p>-->
+<!--                                        <div class="col-6">-->
+<!--                                            <div class="progress">-->
+<!--                                                <div aria-valuemax="10"-->
+<!--                                                     aria-valuemin="0"-->
+<!--                                                     aria-valuenow="0"-->
+<!--                                                     class="progress-bar"-->
+<!--                                                     id="password-strength2"-->
+<!--                                                     role="progressbar"-->
+<!--                                                     style="width:0%">-->
+<!--                                                </div>-->
+<!--                                            </div>-->
+<!--                                        </div>-->
+<!--                                        <div class="col-6 text-end">-->
+<!--                                            <small class="form-text text-muted">-->
+<!--                                                Password strength:-->
+<!--                                            </small>-->
+<!--                                            <p class="d-inline font-weight-bold" id="password-strength-text2"></p>-->
+<!--                                        </div>-->
+<!--                                    </div>-->
                                 </div>
                                 {% for error in form.password_confirm.errors %}
                                 <span style="color: red;">{{ error }}</span>
@@ -146,32 +148,59 @@
                 </div>
                 <div class="text-center rsignin">
                     <a href="{{url_for('login')}}">Return to sign in</a>
+                    <button class="btn btn-inverse btnpop">ClickMe</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 <script>
-    let password = document.getElementById('password');
-    let passwordBar = document.getElementById('password-bar');
-    let passwordStrength = document.getElementById("password-strength");
-    let text = document.getElementById('password-strength-text');
-    password.addEventListener("input", function () {
-        let pass = document.getElementById("password").value;
-        checkStrength(pass, passwordBar, passwordStrength, text);
-    });
-    let password2 = document.getElementById('password_confirm');
-    let passwordBar2 = document.getElementById('password-bar2');
-    let passwordStrength2 = document.getElementById("password-strength2");
-    let text2 = document.getElementById('password-strength-text2');
-    password2.addEventListener("input", function () {
-        let pass2 = document.getElementById("password_confirm").value;
-        checkStrength(pass2, passwordBar2, passwordStrength2, text2);
-    });
+    const options = {
+        translations: zxcvbnts['language-en'].translations,
+        graphs: zxcvbnts['language-common'].adjacencyGraphs,
+        dictionary: {
+            ...zxcvbnts['language-common'].dictionary,
+            ...zxcvbnts['language-en'].dictionary,
+        },
+    }
+
+    matcherPwned = zxcvbnts["matcher-pwned"]['default'](fetch, zxcvbnts.core.zxcvbnOptions)
+    zxcvbnts.core.zxcvbnOptions.addMatcher('pwned', matcherPwned)
+
+    zxcvbnts.core.zxcvbnOptions.setOptions(options)
+    var myPopoverTrigger = document.getElementById('password')
+    var myPopover = new bootstrap.Popover(myPopoverTrigger,{
+        content: 'Enter password',
+        trigger: 'focus',
+    })
 
 
-    function checkStrength(password, passwordBar, passwordStrength, text) {
-        const strength = zxcvbnts.core.zxcvbn(password).score;
+    var pwnedtxt;
+    const someCallableFunction = (password, passwordBar, passwordStrength, text) => {
+        // ...do your magic for example get the value from an input field or somewhere else
+        // let pass = document.getElementById("password").value;
+        // const results = zxcvbnts.core.zxcvbn(password);
+        // const strength = results.score;
+
+        zxcvbnts.core.zxcvbnAsync(password).then((result) => {
+            // console.log(result.feedback.warning
+                var popover = bootstrap.Popover.getInstance(myPopoverTrigger)
+            if (pwnedtxt != result.feedback.warning){
+                    // change the content
+                popover._config.content = result.feedback.warning
+                popover.setContent();
+                pwnedtxt = result.feedback.warning
+            }
+
+
+    // var popover = $('#password').attr('data-content', result.feedback.warning).data('bs.popover');
+    // popover.setContent();
+    // popover.$tip.addClass(popover.options.placement).removeClass('danger success info warning primary').addClass(pclass);
+
+            const results = result
+            const strength = results.score
+        // console.log(results)
+
         // console.log(strength)
         // If value is less than 2
         if (password.length > 0) {
@@ -204,7 +233,34 @@
             passwordStrength.style = 'width: 100%';
             text.innerHTML = "Strong";
         }
+        })
     }
+
+    const debouncedZxcvbn = zxcvbnts.core.debounce(someCallableFunction, 50)
+    // debouncedZxcvbn()
+
+
+    let password = document.getElementById('password');
+    let passwordBar = document.getElementById('password-bar');
+    let passwordStrength = document.getElementById("password-strength");
+    let text = document.getElementById('password-strength-text');
+    password.addEventListener("input", function () {
+        let pass = document.getElementById("password").value;
+        debouncedZxcvbn(pass, passwordBar, passwordStrength, text)
+        // checkStrength();
+    });
+    // let password2 = document.getElementById('password_confirm');
+    // let passwordBar2 = document.getElementById('password-bar2');
+    // let passwordStrength2 = document.getElementById("password-strength2");
+    // let text2 = document.getElementById('password-strength-text2');
+    // password2.addEventListener("input", function () {
+    //     let pass2 = document.getElementById("password_confirm").value;
+    //     debouncedZxcvbn()
+        // checkStrength(pass2, passwordBar2, passwordStrength2, text2);
+    // });
+
+
+
 </script>
 
 {% endblock %}
