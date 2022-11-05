@@ -3,6 +3,7 @@ from __future__ import print_function  # not sure if can remove this
 
 import base64
 import datetime
+import hashlib
 import os
 from base64 import b64encode
 # for google API stuff (part 2)
@@ -10,6 +11,7 @@ import os.path
 from datetime import date, timedelta
 from email.message import EmailMessage
 
+import pwnedpasswords
 import pymssql
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
@@ -232,6 +234,12 @@ class RegisterForm(FlaskForm):
 
     submit = SubmitField("Register")  # Register button once they are done
 
+    def validate_password(self, password):
+        #hash sha1 before sending to api
+        hash_object = hashlib.sha1(self.password.data.encode('utf-8'))
+        pbHash = hash_object.hexdigest()
+        if pwnedpasswords.check(pbHash) > 1:
+            raise ValidationError("This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
 
 class EditProfileForm(FlaskForm):
     # For users to choose a first name
@@ -243,7 +251,8 @@ class EditProfileForm(FlaskForm):
 
     # For users to input their email
     email = EmailField('Email', validators=[InputRequired("Please enter email address"),
-                                            Length(min=4, max=254), Email(check_deliverability=True)])
+                                            Length(min=4, max=254), Email(granular_message=True,
+                                                                          check_deliverability=True)])
 
     # For users to choose a username
     username = StringField(render_kw={'disabled': True})
@@ -279,51 +288,13 @@ class ChangePasswordForm(FlaskForm):
                                                                                                    message='Passwords must match, Please try again')])
     submitp = SubmitField("Save")  # Register button once they are done
 
+    def validate_password2(self, password2):
+        #hash sha1 before sending to api
+        hash_object = hashlib.sha1(self.password2.data.encode('utf-8'))
+        pbHash = hash_object.hexdigest()
+        if pwnedpasswords.check(pbHash) > 1:
+            raise ValidationError("This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
 
-class EditProfileForm(FlaskForm):
-    # For users to choose a first name
-    firstname = StringField('First Name', validators=[InputRequired(),
-                                                      Length(min=2, max=64)])
-    # For users to choose a last nameaddress
-    lastname = StringField('Last Name', validators=[InputRequired(),
-                                                    Length(min=2, max=64)])
-
-    # For users to input their email
-    email = EmailField('Email', validators=[InputRequired("Please enter email address"),
-                                            Length(min=4, max=254), Email(check_deliverability=True)])
-
-    # For users to choose a username
-    username = StringField(render_kw={'disabled': True})
-    country = StringField(validators=[Length(max=128)])
-    city = StringField(validators=[Length(max=128)])
-    address = StringField(validators=[Length(max=255)])
-    dob = DateField("Date of Brith", validators=[validators.Optional()])
-
-    # For users to choose a password
-    password = PasswordField(label='Current Password', validators=[InputRequired(),
-                                                                   validators.Length(min=12, max=128)])
-
-    # For users to enter their contact number
-    contact = IntegerField('Contact Number', validators=[InputRequired()])
-
-    submit = SubmitField("Save changes")  # Register button once they are done
-
-
-class ChangePasswordForm(FlaskForm):
-    # For users to choose a password
-    password = PasswordField(label='Current Password', validators=[InputRequired(),
-                                                                   validators.Length(min=12, max=128)])
-
-    # For users to confirm password
-    password2 = PasswordField(label='New Password', validators=[InputRequired(),
-                                                                validators.Length(min=12, max=128),
-                                                                password_policy_check])
-    # For users to confirm password
-    password_confirm2 = PasswordField(label='Confirm New Password', validators=[InputRequired(),
-                                                                                validators.Length(min=12, max=128),
-                                                                                validators.EqualTo('password2',
-                                                                                                   message='Passwords must match, Please try again')])
-    submitp = SubmitField("Save")  # Register button once they are done
 
 
 class LoginForm(FlaskForm):
@@ -443,6 +414,12 @@ class newPasswordForm(FlaskForm):
     password2 = PasswordField('Confirm your new Password',
                               validators=[DataRequired(), validators.Length(min=12, max=128),
                                           EqualTo('password', message='Passwords must match')])
+    def validate_password(self, password):
+        #hash sha1 before sending to api
+        hash_object = hashlib.sha1(self.password.data.encode('utf-8'))
+        pbHash = hash_object.hexdigest()
+        if pwnedpasswords.check(pbHash) > 1:
+            raise ValidationError("This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
 
 
 class ApproveBooking(FlaskForm):
