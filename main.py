@@ -603,7 +603,7 @@ def login():
                 cursor.execute(insert_stmt, data)
                 conn.commit()
                 conn.close()
-                flash("Username or Password incorrect. Please try again")
+                flash("Username or Password incorrect. Please try again", 'danger')
                 return redirect(url_for('login'))
         except:
             # Would likely occur if there was user had keyed in an invalid username
@@ -618,7 +618,7 @@ def login():
             conn.commit()
             conn.close()
 
-            flash("Username or Password incorrect. Please try again")
+            flash("Username or Password incorrect. Please try again", 'danger')
             return redirect(url_for('login'))
             passResult = 0
 
