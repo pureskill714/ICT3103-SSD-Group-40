@@ -34,5 +34,5 @@ END
 GO
 
 SELECT * FROM Sessions
-EXEC check_session 'aloycsm', 'THIS IS MY SESSION_ID'
+EXEC check_session 'aloycsm', '¿¥­'
 
