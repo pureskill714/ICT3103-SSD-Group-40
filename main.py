@@ -5,14 +5,15 @@ import base64
 import datetime
 import hashlib
 import os
-from base64 import b64encode
 # for google API stuff (part 2)
 import os.path
+from base64 import b64encode
 from datetime import date, timedelta
 from email.message import EmailMessage
 
 import pwnedpasswords
 import pymssql
+from dotenv import load_dotenv
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
@@ -26,11 +27,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from itsdangerous import URLSafeTimedSerializer
-from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, DateField, HiddenField
-from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired, EqualTo
-
 from util import cleanhtml, password_policy_check
-from dotenv import load_dotenv
+from wtforms import StringField, PasswordField, SubmitField, IntegerField, EmailField, validators, SelectField, \
+    DateField, HiddenField
+from wtforms.validators import InputRequired, Length, ValidationError, Email, DataRequired, EqualTo
 
 # Allow users to pass variables into our view function and then dynamically change what we have on our view page
 # Dynamically pass variables into the URL
@@ -71,7 +71,7 @@ app.wsgi_app = ProxyFix(  # tell flask is behind a proxy
 app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
 recaptcha_public_key = os.getenv('recaptcha_public_key')
-recaptcha_private_key=os.getenv('recaptcha_private_key')
+recaptcha_private_key = os.getenv('recaptcha_private_key')
 app.config['RECAPTCHA_PUBLIC_KEY'] = f'{recaptcha_public_key}'
 app.config['RECAPTCHA_PRIVATE_KEY'] = f'{recaptcha_private_key}'
 # against attacks such as Cross site request forgery (CSRF)
@@ -95,6 +95,7 @@ app.config.update(
 )
 
 db_password = os.getenv("db_password")
+
 
 def gmail_send_message(otp, emailadd):
     creds = None
@@ -158,7 +159,6 @@ def gmail_send_message(otp, emailadd):
     return send_message
 
 
-
 def encode(input):
     # Function that checks if the user inputs can be encoded and decoded to and from utf-8
     # Can help to prevent buffer overflow/code injection/
@@ -185,7 +185,7 @@ def load_user_customer(user_id):
 def check_session(username, session_ID):
     username = encode(username)
     session_ID = session_ID
-    db_password = os.getenv("db_password")        
+    db_password = os.getenv("db_password")
     conn = pymssql.connect(server="db", user='sa', password=f'{db_password}', database="3203")
     cursor = conn.cursor()
     cursor.execute('EXEC check_session %s, %s', (username, session_ID))
@@ -225,7 +225,8 @@ class RegisterForm(FlaskForm):
 
     # For users to input their email
     email = EmailField('Email', validators=[InputRequired("Please enter email address"),
-                                            Length(min=4, max=254), Email(granular_message=True, check_deliverability=True)])
+                                            Length(min=4, max=254),
+                                            Email(granular_message=True, check_deliverability=True)])
 
     # For users to choose a username
     username = StringField(validators=[InputRequired(),
@@ -245,11 +246,13 @@ class RegisterForm(FlaskForm):
     submit = SubmitField("Register")  # Register button once they are done
 
     def validate_password(self, password):
-        #hash sha1 before sending to api
+        # hash sha1 before sending to api
         hash_object = hashlib.sha1(self.password.data.encode('utf-8'))
         pbHash = hash_object.hexdigest()
         if pwnedpasswords.check(pbHash) > 1:
-            raise ValidationError("This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
+            raise ValidationError(
+                "This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
+
 
 class EditProfileForm(FlaskForm):
     # For users to choose a first name
@@ -299,12 +302,12 @@ class ChangePasswordForm(FlaskForm):
     submitp = SubmitField("Save")  # Register button once they are done
 
     def validate_password2(self, password2):
-        #hash sha1 before sending to api
+        # hash sha1 before sending to api
         hash_object = hashlib.sha1(self.password2.data.encode('utf-8'))
         pbHash = hash_object.hexdigest()
         if pwnedpasswords.check(pbHash) > 1:
-            raise ValidationError("This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
-
+            raise ValidationError(
+                "This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
 
 
 class LoginForm(FlaskForm):
@@ -348,7 +351,8 @@ class StaffRegisterForm(FlaskForm):
 
     # For manager to reenter their password
     password = PasswordField(validators=[InputRequired(),
-                                         validators.Length(min=12, max=128)], render_kw={"placeholder": "Resubmit Password"})
+                                         validators.Length(min=12, max=128)],
+                             render_kw={"placeholder": "Resubmit Password"})
 
     submit = SubmitField("Register")  # Register button once they are done
 
@@ -381,6 +385,7 @@ class updateStaffAccount(FlaskForm):
                                    Length(min=4, max=254), Email()])
 
     submit = SubmitField('Update')
+
 
 ###### Staff RUD
 ###### Customer CRUD
@@ -424,12 +429,14 @@ class newPasswordForm(FlaskForm):
     password2 = PasswordField('Confirm your new Password',
                               validators=[DataRequired(), validators.Length(min=12, max=128),
                                           EqualTo('password', message='Passwords must match')])
+
     def validate_password(self, password):
-        #hash sha1 before sending to api
+        # hash sha1 before sending to api
         hash_object = hashlib.sha1(self.password.data.encode('utf-8'))
         pbHash = hash_object.hexdigest()
         if pwnedpasswords.check(pbHash) > 1:
-            raise ValidationError("This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
+            raise ValidationError(
+                "This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!")
 
 
 class ApproveBooking(FlaskForm):
@@ -489,9 +496,11 @@ class StaffDeleteForm(FlaskForm):
 
     # For manager to reenter password
     password = PasswordField(validators=[InputRequired(),
-                                         validators.Length(min=12, max=128)], render_kw={"placeholder": "Resubmit Password"})
+                                         validators.Length(min=12, max=128)],
+                             render_kw={"placeholder": "Resubmit Password"})
 
     submit = SubmitField("Delete User")  # button once they are done
+
 
 # App routes help to redirect to different pages of the website
 @app.route("/", methods=['GET', 'POST'])
@@ -565,7 +574,7 @@ def login():
             if user_email is not None:  # Login was successful
                 session['username'] = username
 
-                #generate secret for generating the otp
+                # generate secret for generating the otp
                 otpsecret = base64.b32encode(os.urandom(16)).decode('utf-8')
                 session['secret'] = otpsecret
                 totp = pyotp.TOTP(otpsecret)
@@ -1032,8 +1041,6 @@ def staffregister():
     return render_template('staffregister.html', form=form)
 
 
-
-
 @app.route('/customertable')
 def customertable():
     res = check_session(session['username'], session['Session_ID'])
@@ -1206,7 +1213,7 @@ def staffUpdateValue():
         return render_template('staffCRUD/staff_update_value.html', update_form=update_form, user=user,
                                username=tmp_username)
     else:
-        flash('No such user found. Please refer to stafftable to find the list of staff users',"danger")
+        flash('No such user found. Please refer to stafftable to find the list of staff users', "danger")
         return render_template('staffCRUD/staff_update_search.html', form=search_form)
 
     # return render_template('staffCRUD/staff_update_value.html', update_form=update_form, details=details, username=username)
@@ -1259,6 +1266,7 @@ def staffDeleteSearch():
     form = StaffSearchForm()
     return render_template('staffCRUD/staff_delete_search.html', form=form)
 
+
 @app.route('/staffdeleteconfirm', methods=['GET', 'POST'])
 def staffDeleteConfirm():
     res = check_session(session['username'], session['Session_ID'])
@@ -1276,10 +1284,11 @@ def staffDeleteConfirm():
     conn.close()
     if user:
         return render_template('staffCRUD/staff_delete_confirm.html', update_form=update_form, user=user,
-                           username=tmp_username)
+                               username=tmp_username)
     else:
-        flash('No such user found. Please refer to stafftable to find the list of staff users',"danger")
+        flash('No such user found. Please refer to stafftable to find the list of staff users', "danger")
         return render_template('staffCRUD/staff_delete_search.html', form=search_form)
+
 
 @app.route('/staffdeletesubmit', methods=['GET', 'POST'])
 def staffDeleteSubmit():
@@ -1319,14 +1328,16 @@ def staffDeleteSubmit():
 
             return render_template('staffCRUD/staff_delete_sucess.html')
         else:
-            data = (time_date_aware, "password_verification_failed", "Warn", hostname, source_ip, destination_ip, browser,
-                    f"User attempted to {session['User_ID']} deleted user {tmp_username}")
+            data = (
+            time_date_aware, "password_verification_failed", "Warn", hostname, source_ip, destination_ip, browser,
+            f"User attempted to {session['User_ID']} deleted user {tmp_username}")
 
             cursor.execute(insert_stmt, data)
             conn.commit()
             conn.close()
             return render_template('delete_staff_password_resubmit_failed.html')
     return
+
 
 @app.route("/viewProfile", methods=['GET'])
 # @login_required  # ensure is logged then, only then can access the dashboard
@@ -1464,9 +1475,6 @@ def staffregistersucess():
     return render_template('staffregistersucess.html')
 
 
-
-
-
 @app.route("/timeout")
 def timeout():
     hostname = encode(socket.gethostname())
@@ -1490,6 +1498,7 @@ def timeout():
     session.clear()  # Ensure session is cleared
     return render_template('timeout.html')
 
+
 # 400 - To handle Bad request
 @app.route('/400')
 def error400():
@@ -1512,6 +1521,7 @@ def error404():
 @app.route('/500')
 def error500():
     abort(500)
+
 
 # To direct to 400 page
 @app.errorhandler(400)

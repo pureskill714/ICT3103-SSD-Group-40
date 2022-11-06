@@ -7,6 +7,8 @@ RUN apt-get update
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip3 install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install gunicorn
 
 COPY . .
 
@@ -16,9 +18,9 @@ ENV FLASK_RUN_PORT 5000
 ENV FLASK_RUN_HOST 0.0.0.0
 ENV VIRTUAL_HOST cozyinn.tk
 ENV LETSENCRYPT_HOST cozyinn.tk
-ENV VIRTUAL_PORT 5000
 ENV LETSENCRYPT_EMAIL noreply.cozyinn@gmail.com
 
-EXPOSE 5000
+EXPOSE 8000
 
-CMD ["flask", "run"]
+#CMD ["flask", "run"]
+CMD ["gunicorn", "-w", "4", "main:app"]
