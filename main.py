@@ -518,7 +518,7 @@ def login():
         db_password = os.getenv("db_password")
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("DESKTOP-7GS9BE8", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("DESKTOP-7GS9BE8", 'flask', "Gx2015IO!%es", "3203")
         cursor = conn.cursor()
 
         # Run encode/decode check functions
@@ -775,6 +775,7 @@ def forgetPassword():
     time_date_aware = datetime.datetime.now(pytz.utc)
 
     if form.validate_on_submit():
+        flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
         email = encode(form.email.data)
 
         db_password = os.getenv("db_password")
@@ -783,7 +784,7 @@ def forgetPassword():
         cursor.execute('EXEC check_email %s', form.email.data)
         result = cursor.fetchone()
         conn.close()
-        flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
+        
 
         if (result[0] == 1):
             db_password = os.getenv("db_password")
@@ -1580,7 +1581,7 @@ def booking():
             elif room_type == "Deluxe":
                 room_type = 3
             else:
-                # Default value + logging
+                # Default value
                 room_type = 1
 
             if room_type == 1:
