@@ -69,7 +69,7 @@ app.wsgi_app = ProxyFix(  # tell flask is behind a proxy
     app.wsgi_app, x_for=1, x_proto=1, x_port=1
 )
 app.config['SECRET_KEY'] = seckey  # flask uses secret to secure session cookies and protect our webform
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # To give session timeout if user idle
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)  # To give session timeout if user idle
 recaptcha_public_key = os.getenv('recaptcha_public_key')
 recaptcha_private_key=os.getenv('recaptcha_private_key')
 app.config['RECAPTCHA_PUBLIC_KEY'] = f'{recaptcha_public_key}'
@@ -94,7 +94,6 @@ app.config.update(
     SESSION_COOKIE_DOMAIN=False
 )
 
-db_password = os.getenv("db_password")
 
 def gmail_send_message(otp, emailadd):
     creds = None
@@ -199,6 +198,7 @@ def check_session(username, session_ID):
         logout_user()  # log the user out
         session.clear()  # Ensure session is cleared
         session.pop('username', None)  # Remove session after user has logout
+        delete_session(session['username'], session['Session_ID']) #delete session from database
     return None
 
 
@@ -564,7 +564,7 @@ def login():
             conn.close()
             if user_email is not None:  # Login was successful
                 session['username'] = username
-
+                session.permanent = True
                 #generate secret for generating the otp
                 otpsecret = base64.b32encode(os.urandom(16)).decode('utf-8')
                 session['secret'] = otpsecret
@@ -783,6 +783,7 @@ def forgetPassword():
     time_date_aware = datetime.datetime.now(pytz.utc)
 
     if form.validate_on_submit():
+        flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
         email = encode(form.email.data)
 
         db_password = os.getenv("db_password")
@@ -791,7 +792,7 @@ def forgetPassword():
         cursor.execute('EXEC check_email %s', form.email.data)
         result = cursor.fetchone()
         conn.close()
-        flash(f'If that email address is in our database, we will send you an email to reset your password.', 'success')
+
 
         if (result[0] == 1):
             db_password = os.getenv("db_password")
@@ -1588,7 +1589,7 @@ def booking():
             elif room_type == "Deluxe":
                 room_type = 3
             else:
-                # Default value + logging
+                # Default value
                 room_type = 1
 
             if room_type == 1:
