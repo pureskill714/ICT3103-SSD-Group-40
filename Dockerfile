@@ -12,15 +12,15 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY . .
 
-ENV FLASK_APP main.py
-ENV FLASK_ENV production
-ENV FLASK_RUN_PORT 5000
-ENV FLASK_RUN_HOST 0.0.0.0
+#ENV FLASK_APP main.py
+#ENV FLASK_ENV production
+#ENV FLASK_RUN_PORT 5000
+#ENV FLASK_RUN_HOST 0.0.0.0
 ENV VIRTUAL_HOST cozyinn.tk
 ENV LETSENCRYPT_HOST cozyinn.tk
 ENV LETSENCRYPT_EMAIL noreply.cozyinn@gmail.com
 
-EXPOSE 8000
+EXPOSE 5000
 
 #CMD ["flask", "run"]
-CMD ["gunicorn", "-w", "4", "main:app"]
+CMD ["gunicorn", "-w", "4", "--bind",":5000", "main:app"]
