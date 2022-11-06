@@ -186,7 +186,7 @@ def check_session(username, session_ID):
     username = encode(username)
     session_ID = session_ID
     db_password = os.getenv("db_password")        
-    conn = pymssql.connect(server="188.166.224.77", user='sa', password=f'{db_password}', database="3203")
+    conn = pymssql.connect(server="db", user='sa', password=f'{db_password}', database="3203")
     cursor = conn.cursor()
     cursor.execute('EXEC check_session %s, %s', (username, session_ID))
 
@@ -206,7 +206,7 @@ def delete_session(username, session_ID):
     username = encode(username)
     session_ID = session_ID
     db_password = os.getenv("db_password")
-    conn = pymssql.connect(server="188.166.224.77", user='sa', password=f'{db_password}', database="3203")
+    conn = pymssql.connect(server="db", user='sa', password=f'{db_password}', database="3203")
     cursor = conn.cursor()
     cursor.execute('EXEC delete_session %s, %s', (username, session_ID))
     conn.commit()
@@ -527,7 +527,7 @@ def login():
         db_password = os.getenv("db_password")
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
 
         # Run encode/decode check functions
@@ -574,7 +574,7 @@ def login():
                 return redirect(url_for('mfa'))
             else:
                 db_password = os.getenv("db_password")
-                conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+                conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
                 cursor = conn.cursor()
                 insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
                 data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
@@ -588,7 +588,7 @@ def login():
         except:
             # Would likely occur if there was user had keyed in an invalid username
             db_password = os.getenv("db_password")
-            conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+            conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (time_date_aware, "auth_login_failed", "Warn", hostname, source_ip, destination_ip, browser,
@@ -620,7 +620,7 @@ def mfa():
             session['Session_ID'] = Session_ID
 
             db_password = os.getenv("db_password")
-            conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+            conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
             cursor = conn.cursor()
 
             cursor.execute('EXEC create_session %s, %s', (session['username'], Session_ID))
@@ -634,7 +634,7 @@ def mfa():
             time_date_aware = datetime.datetime.now(pytz.utc)
 
             db_password = os.getenv("db_password")
-            conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+            conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (time_date_aware, "aunth_login_success", "Info", hostname, source_ip, destination_ip, browser,
@@ -672,7 +672,7 @@ def customerdashboard():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Customer'):
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
         data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
@@ -701,7 +701,7 @@ def staffdashboard():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Staff'):
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
         data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
@@ -725,7 +725,7 @@ def managerdashboard():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] != 'Manager'):
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
         data = (time_date_aware, "authorization_failed", "Critical", hostname, source_ip, destination_ip, browser,
@@ -753,7 +753,7 @@ def logout():
     try:
         check_session(session['username'], session['Session_ID'])
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
         data = (time_date_aware, "aunth_logout_success", "Info", hostname, source_ip, destination_ip, browser,
@@ -786,7 +786,7 @@ def forgetPassword():
         email = encode(form.email.data)
 
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         cursor.execute('EXEC check_email %s', form.email.data)
         result = cursor.fetchone()
@@ -795,7 +795,7 @@ def forgetPassword():
 
         if (result[0] == 1):
             db_password = os.getenv("db_password")
-            conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+            conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (
@@ -813,7 +813,7 @@ def forgetPassword():
             token = ts.dumps(email, salt)
 
             db_password = os.getenv("db_password")
-            conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+            conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
             cursor = conn.cursor()
             cursor.execute('EXEC update_token_reset %s, %s', (email, token))
             conn.commit()
@@ -834,7 +834,7 @@ def forgetPassword():
         elif (result[0] == 2):
             # email of the user not found, create log with IP here
             db_password = os.getenv("db_password")
-            conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+            conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (
@@ -855,7 +855,7 @@ def reset_with_token(token):
         email = ts.loads(token, salt=salt, max_age=360)
         # check database for token
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         cursor.execute('EXEC retrieve_token_reset @Email = %s', email)
         token_check = cursor.fetchone()
@@ -874,7 +874,7 @@ def reset_with_token(token):
         hashed_password = bcrypt.generate_password_hash(passwordInput)
 
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         cursor.execute('EXEC update_password %s, %s', (email, hashed_password))
         conn.commit()
@@ -912,7 +912,7 @@ def register():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
 
         # Run encode/decode check functions
         passwordInput = encode(form.password.data)
@@ -942,7 +942,7 @@ def register():
         if res == 2:
             # Stored procedure was ran successfully and user successfully registered
             db_password = os.getenv("db_password")
-            conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+            conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (
@@ -954,7 +954,7 @@ def register():
             return redirect(url_for('registersuccess'))  # redirect to login page after register
         elif res == 1:
             db_password = os.getenv("db_password")
-            conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+            conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
             cursor = conn.cursor()
             insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
             data = (
@@ -985,7 +985,7 @@ def staffregister():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         cursor.execute('EXEC retrieve_password @username = %s', session['username'])
         passwordHash = cursor.fetchone()
@@ -1040,7 +1040,7 @@ def customertable():
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_customer")
     res = cursor.fetchall()
@@ -1055,7 +1055,7 @@ def stafftable():
     if (res[1] != 'Manager'):
         return render_template('403.html'), 403
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_staff")
     res = cursor.fetchall()
@@ -1072,7 +1072,7 @@ def pendingbookingtable():
 
     approve = ApproveBooking()
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     get_bookings = "SELECT * FROM get_pending_bookings"
     cursor.execute(get_bookings)
@@ -1090,7 +1090,7 @@ def cancelBooking():
 
     delete = deleteBooking()
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     User_UUID = res[0]
     cursor.execute("EXEC get_my_bookings %s", User_UUID)
@@ -1107,7 +1107,7 @@ def deleteBookingConfirm(id):
         return render_template('403.html'), 403
 
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC delete_bookings %s, %s", (id, res[0]))
     res = cursor.fetchone()
@@ -1128,7 +1128,7 @@ def bookingtable():
     res = check_session(session['username'], session['Session_ID'])
     if (res[1] == 'Customer'):
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         User_UUID = res[0]
         cursor.execute("EXEC get_my_bookings %s", User_UUID)
@@ -1136,7 +1136,7 @@ def bookingtable():
         conn.close()
     elif (res[1] == 'Staff'):
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM get_bookings")
         bookings = cursor.fetchall()
@@ -1155,7 +1155,7 @@ def pendingBookingApprove(id):
         return render_template('403.html'), 403
 
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC approve_bookings %s", id)
     conn.commit()
@@ -1169,7 +1169,7 @@ def approvedbookingtable():
     if (res[1] != 'Staff'):
         return render_template('403.html'), 403
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM get_approved_bookings")
     bookings = cursor.fetchall()
@@ -1194,7 +1194,7 @@ def staffUpdateValue():
     search_form = StaffSearchForm()
     update_form = StaffUpdateForm()
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
 
     global tmp_username
@@ -1219,7 +1219,7 @@ def staffUpdateSubmit():
         return render_template('403.html'), 403
     update_form = StaffUpdateForm()
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
 
     email = encode(update_form.email.data)
     fname = encode(update_form.firstname.data)
@@ -1231,7 +1231,7 @@ def staffUpdateSubmit():
     contact = update_form.contact.data
 
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     if update_form.validate_on_submit():
         cursor.execute("EXEC update_details %s, %s, %s, %s, %s, %s, %s, %s, %d",
@@ -1266,7 +1266,7 @@ def staffDeleteConfirm():
         return render_template('403.html'), 403
     search_form = StaffSearchForm()
     update_form = StaffDeleteForm()
-    conn = pymssql.connect("188.166.224.77", 'sa', '12345678', "3203")
+    conn = pymssql.connect("db", 'sa', '12345678', "3203")
     cursor = conn.cursor()
 
     global tmp_username
@@ -1287,7 +1287,7 @@ def staffDeleteSubmit():
     if (res[1] != 'Manager'):
         return render_template('403.html'), 403
     update_form = StaffDeleteForm()
-    conn = pymssql.connect("188.166.224.77", 'sa', '12345678', "3203")
+    conn = pymssql.connect("db", 'sa', '12345678', "3203")
     cursor = conn.cursor()
     if update_form.validate_on_submit():
         cursor.execute('EXEC retrieve_password @username = %s', session['username'])
@@ -1301,7 +1301,7 @@ def staffDeleteSubmit():
         browser = str(request.user_agent)
         time_date_aware = datetime.datetime.now(pytz.utc)
 
-        conn = pymssql.connect("188.166.224.77", 'sa', '12345678', "3203")
+        conn = pymssql.connect("db", 'sa', '12345678', "3203")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
 
@@ -1342,7 +1342,7 @@ def viewProfile():
         return redirect(url_for('timeout'))
 
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -1364,7 +1364,7 @@ def editProfile():
     if editProfileForm.validate_on_submit():
         passwordInput = encode(editProfileForm.password.data)
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         cursor.execute('EXEC retrieve_password @username = %s', username)
         passwordHash = cursor.fetchone()
@@ -1380,7 +1380,7 @@ def editProfile():
         contact = editProfileForm.contact.data
 
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
 
         if bcrypt.check_password_hash(passwordHash[0], passwordInput):
@@ -1413,7 +1413,7 @@ def changepassword():
         return redirect(url_for('timeout'))
 
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     cursor.execute("EXEC user_details %s", username)
     user = cursor.fetchone()
@@ -1476,7 +1476,7 @@ def timeout():
     time_date_aware = datetime.datetime.now(pytz.utc)
 
     db_password = os.getenv("db_password")
-    conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
     data = (time_date_aware, "session_expired", "Warn", hostname, source_ip, destination_ip, browser,
@@ -1567,7 +1567,7 @@ def booking():
         # Creating connections individually to avoid open connections
         # CHANGE TO YOUR OWN MSSQL SERVER PLEASE
         db_password = os.getenv("db_password")
-        conn = pymssql.connect("188.166.224.77", 'sa', f"{db_password}", "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         cursor.execute('EXEC retrieve_password @username = %s', session['username'])
         passwordHash = cursor.fetchone()
