@@ -1267,7 +1267,7 @@ def staffDeleteConfirm():
         return render_template('403.html'), 403
     search_form = StaffSearchForm()
     update_form = StaffDeleteForm()
-    conn = pymssql.connect("db", 'sa', '12345678', "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
 
     global tmp_username
@@ -1288,7 +1288,7 @@ def staffDeleteSubmit():
     if (res[1] != 'Manager'):
         return render_template('403.html'), 403
     update_form = StaffDeleteForm()
-    conn = pymssql.connect("db", 'sa', '12345678', "3203")
+    conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
     cursor = conn.cursor()
     if update_form.validate_on_submit():
         cursor.execute('EXEC retrieve_password @username = %s', session['username'])
@@ -1302,7 +1302,7 @@ def staffDeleteSubmit():
         browser = str(request.user_agent)
         time_date_aware = datetime.datetime.now(pytz.utc)
 
-        conn = pymssql.connect("db", 'sa', '12345678', "3203")
+        conn = pymssql.connect("db", 'sa', f"{db_password}", "3203")
         cursor = conn.cursor()
         insert_stmt = ("EXEC create_log %s, %s, %s, %s, %s, %s, %s, %s")
 
